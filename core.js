@@ -302,12 +302,12 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
         };
 
         let validateMonth = matchRegexArray => {
-            matchRegexArray[1] = matchRegexArray[1].substr(0,2);
-
+            // matchRegexArray[1] = matchRegexArray[1].substr(0,2);
+            console.log("Длина массива: " + matchRegexArray.length);
             if (matchRegexArray[1][0] === "0") matchRegexArray[1] = matchRegexArray[1].substr(1,2);
             // Этот фрагмент кода выполняется, если пользователь ввел дату так: "ДД.ММ"
             if (matchRegexArray.length === 2) {
-                // if (matchRegexArray[1] === "12") matchRegexArray[1] = "0";
+
                 for (let key in scheduleDates) {
                     if (+matchRegexArray[1] > 12) return false;
                     if (!scheduleDates[key].hasOwnProperty('scheduleMonth')) continue;
@@ -328,6 +328,23 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             // Вычленяем месяц массива-результата
             for (let key in scheduleDates) {
                 // Создаем критерий для поиска совпадений в массиве месяцев
+
+                // Некоторые месяцы содержат массив шаблонов для регулярных выражений
+                // для перебора значений массива используется фрагмент кода ниже
+                if (typeof(scheduleDates[key].matchExpression) === "object" ) {
+                    for (let i = 0; i < scheduleDates[key].matchExpression.length; i++) {
+                        let monthRegEx = new RegExp(scheduleDates[key].matchExpression[i], 'i');
+                        if (matchRegexArray[2].search(monthRegEx) !== -1) {
+                            // При положительном результате в переменную-результат присваивается объект,
+                            // содержащий информацию о месяце
+                            tempDateObj.day = +matchRegexArray[1];
+                            tempDateObj.month = scheduleDates[key];
+                            console.log("Месяц проверен. Получилась вот такая дата: " + JSON.stringify(tempDateObj.month));
+                            return true;
+                        }
+                    }
+                }
+
                 let monthRegEx = new RegExp(scheduleDates[key].matchExpression, 'i');
                 // В ячейке номер 2 лежит строка, содержащая название месяца
                 // ["25 декабря", "25", "декабря", index: 0, input: "25 декабря", groups: undefined]
