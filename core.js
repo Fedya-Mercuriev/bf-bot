@@ -126,7 +126,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                     ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
                     ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
                     // Выводим меню заказа
-                    displayOrderInterface(ctx);
+                    return displayOrderInterface(ctx);
                 }
 
                 // Этот фрагмент кода выполняется если была нажата кнопка "Сегодня"
@@ -150,18 +150,19 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                             // Если сегодня, тогда попросить указать точное время (эта фича под вопросом)
                             Markup.callbackButton('Продолжить', 'продолжить'),
                         ]).extra());
+                } else {
+                    orderInfo.orderDate = (() => {
+                        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+                        let result;
+                        let thisDate = new Date(Date.now());
+                        let currentMonth = months[thisDate.getMonth()],
+                            currentDay = thisDate.getDate().toString();
+                        result = currentDay + " " + currentMonth;
+                        return result;
+                    })();
+                    ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
+                    return requestContinue(ctx);
                 }
-                orderInfo.orderDate = (() => {
-                    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                    let result;
-                    let thisDate = new Date(Date.now());
-                    let currentMonth = months[thisDate.getMonth()],
-                        currentDay = thisDate.getDate().toString();
-                    result = currentDay + " " + currentMonth;
-                    return result;
-                })();
-                ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
-                return requestContinue(ctx);
             });
             // Реагирует на текстовые сообщения внутри функции валидации даты
             bot.on('message', (ctx) => {
@@ -232,62 +233,62 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             'october': {
                 matchExpression: "окт",
                 fullName: "октября",
-                scheduleMonth: 10
+                monthNumber: 10
             },
             'november': {
-                matchExpression: "ноя",
+                matchExpression: "нояб",
                 fullName: "ноября",
-                scheduleMonth: 11
+                monthNumber: 11
             },
             'december': {
                 matchExpression: "дек",
                 fullName: "декабря",
-                scheduleMonth: 12
+                monthNumber: 12
             },
             'january': {
                 matchExpression: "янв",
                 fullName: "января",
-                scheduleMonth: 1
+                monthNumber: 1
             },
             'february': {
                 matchExpression: "фев",
                 fullName: "февраля",
-                scheduleMonth: 2
+                monthNumber: 2
             },
             'march': {
                 matchExpression: "март",
                 fullName: "марта",
-                scheduleMonth: 3
+                monthNumber: 3
             },
             'april': {
                 matchExpression: "апр",
                 fullName: "апреля",
-                scheduleMonth: 4
+                monthNumber: 4
             },
             'may': {
                 matchExpression: ['май', 'мая'],
                 fullName: "мая",
-                scheduleMonth: 5
+                monthNumber: 5
             },
             'june': {
                 matchExpression: "июн",
                 fullName: "июня",
-                scheduleMonth: 6
+                monthNumber: 6
             },
             'july': {
                 matchExpression: "июл",
                 fullName: "июля",
-                scheduleMonth: 7
+                monthNumber: 7
             },
             'august': {
-                matchExpression: "авг",
+                matchExpression: "авгус",
                 fullName: "августа",
-                scheduleMonth: 8
+                monthNumber: 8
             },
             'september': {
-                matchExpression: "сен",
+                matchExpression: "сент",
                 fullName: "сентября",
-                scheduleMonth: 9
+                monthNumber: 9
             }
         };
         console.log("*** Запущена функция валидации даты");
@@ -309,13 +310,16 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             if (matchRegexArray.length === 2) {
 
                 for (let key in scheduleDates) {
+                    // Возвращаем ошибку если число ММ (месяц) больше 12
                     if (+matchRegexArray[1] > 12) return false;
-                    if (!scheduleDates[key].hasOwnProperty('scheduleMonth')) continue;
-                    let monthRegEx = new RegExp(scheduleDates[key].scheduleMonth, 'i');
+                    // Для экономии сил пропускаем шаги ниже если в объекте даты нет свойства "monthNumber",
+                    // содержащего номер месяца для распознавания (таких свойств нет у "сегодня" и "завтра")
+                    if (!scheduleDates[key].hasOwnProperty('monthNumber')) continue;
+                    let monthRegEx = new RegExp(scheduleDates[key].monthNumber, 'i');
                     let foundMonthInString = matchRegexArray[1].match(monthRegEx);
                     if (foundMonthInString !== null) {
-                        //matchRegexArray[1] += (matchRegexArray[1][foundMonthInString.index + 1]) ? matchRegexArray[1][foundMonthInString.index + 1] : "";
-                        if (scheduleDates[key].scheduleMonth.toString().search(matchRegexArray[1]) !== -1) {
+
+                        if (scheduleDates[key].monthNumber.toString().search(matchRegexArray[1]) !== -1) {
                             tempDateObj.day = +matchRegexArray[0];
                             tempDateObj.month = scheduleDates[key];
                             console.log("Месяц проверен. Получилась вот такая дата: " + JSON.stringify(tempDateObj.month));
@@ -327,7 +331,6 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             }
             // Вычленяем месяц массива-результата
             for (let key in scheduleDates) {
-                // Создаем критерий для поиска совпадений в массиве месяцев
 
                 // Некоторые месяцы содержат массив шаблонов для регулярных выражений
                 // для перебора значений массива используется фрагмент кода ниже
@@ -353,19 +356,22 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                     // содержащий информацию о месяце
                     tempDateObj.day = +matchRegexArray[1];
                     tempDateObj.month = scheduleDates[key];
-                    break;
+                    console.log("Месяц проверен. Получилась вот такая дата: " + JSON.stringify(tempDateObj.month));
+                    return true;
                 }
+                //if (matchRegexArray[2].search('мар')) break;
             }
-            console.log("Месяц проверен. Получилась вот такая дата: " + JSON.stringify(tempDateObj.month));
-            return true;
+            return false;
         };
 
         let validateDay = dateObject => {
+            console.log(dateObject);
             let scheduleYear = new Date().getFullYear(),
                 thisMonth = new Date().getMonth();
-            if (dateObject.month.scheduleMonth < thisMonth + 1) scheduleYear++;
+
+            if (dateObject.month.monthNumber < thisMonth + 1) scheduleYear++;
             console.log(scheduleYear);
-            if (dateObject.day !== 0 && dateObject.day <= daysInMonth(dateObject.month.scheduleMonth, scheduleYear)) {
+            if (dateObject.day !== 0 && dateObject.day <= daysInMonth(dateObject.month.monthNumber, scheduleYear)) {
                 console.log("Число месяца корректно. Получилась такая дата: " + dateObject.day + dateObject.month.fullName);
                 if (scheduleYear > new Date().getFullYear())  {
                     orderInfo.orderDate = "" + tempDateObj.day + " " + tempDateObj.month.fullName + " " + scheduleYear + " года";
