@@ -28,9 +28,22 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
         orderInfo = {
             clientName: "",
             orderDate: undefined,
-            bouquetType: ""
+            orderTime: undefined,
+            bouquetType: "",
+            bouquetPrice: undefined
         },
         dateIsAlreadyChosen = false;
+
+    let displayOrderInterface = (ctx) => {
+        return ctx.reply("Выберите любой пункт в меню",
+            Markup.inlineKeyboard([
+                [Markup.callbackButton('📅 Дата', 'date_order')],
+                [Markup.callbackButton('⏱ Время', 'time_order')],
+                [Markup.callbackButton('💐 Тип букета', 'bouq_type')],
+                [Markup.callbackButton('💸 Стоимость букета', 'bouq_cost')]
+            ]).extra()
+        );
+    };
 
     let outputErrorMessage = (ctx, errorMsg) => {
         ctx.reply(errorMsg);
@@ -359,7 +372,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
         orderIsInitialised = true;
         console.log("*** Запущена функция заказа букетов");
         ctx.reply("Что ж, давайте начнем. Ответьте на пару вопросов и готово!");
-        requestDate(ctx);
+        displayOrderInterface(ctx);
     }
 
     launch.requestDate = requestDate;
