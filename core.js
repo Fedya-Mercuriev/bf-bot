@@ -26,7 +26,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
     };
     let orderIsInitialised = false,
         orderInfo = {
-            clientName: "",
+            contactInfo: undefined,
             orderDate: undefined,
             orderTime: undefined,
             bouquetType: "",
@@ -34,14 +34,60 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
         },
         dateIsAlreadyChosen = false;
 
+// Эта функция проверяет были ли заполнены данные для заказа и собирает меню
+// Если какой-либо пункт меню был заполнен, напротив его кнопки вместе emoji ставится галочка
+    let makeOrderInterface = () => {
+        let btnTypes = {
+            date: {
+                emoji: '📅',
+                text: 'Дата',
+                callback_data: 'date_order',
+                data: orderInfo.orderDate
+            },
+            time: {
+                emoji: '⏱',
+                text: 'Время',
+                callback_data: 'time_order',
+                data: orderInfo.orderTime
+            },
+            clientName: {
+                emoji: '📲',
+                text: 'Контактные данные',
+                callback_data: 'contact_info',
+                data: orderInfo.contactInfo
+            },
+            bouqType: {
+                emoji: '💐',
+                text: 'Тип букета',
+                callback_data: 'bouq_type',
+                data: orderInfo.bouquetType
+            },
+            bouqPrice: {
+                emoji: '💸',
+                text: 'Стоимость букета',
+                callback_data: 'bouq_cost',
+                data: orderInfo.bouquetPrice
+            }
+
+        };
+        let buttonsArr = [];
+        for (let prop in btnTypes) {
+            let result = [];
+            if (btnTypes[prop].data) {
+                result.push(Markup.callbackButton('' + '✅' + ' ' + btnTypes[prop].text, '' + btnTypes[prop].callback_data));
+                buttonsArr.push(result);
+            } else {
+                result.push(Markup.callbackButton('' + btnTypes[prop].emoji + ' ' + btnTypes[prop].text, '' + btnTypes[prop].callback_data));
+                buttonsArr.push(result);
+            }
+        }
+        return Markup.inlineKeyboard(buttonsArr).extra();
+    };
+
     let displayOrderInterface = (ctx) => {
-        return ctx.reply("Выберите любой пункт в меню",
-            Markup.inlineKeyboard([
-                [Markup.callbackButton('📅 Дата', 'date_order')],
-                [Markup.callbackButton('⏱ Время', 'time_order')],
-                [Markup.callbackButton('💐 Тип букета', 'bouq_type')],
-                [Markup.callbackButton('💸 Стоимость букета', 'bouq_cost')]
-            ]).extra()
+        return ctx.reply("Выберите любой пункт в меню и следуйте инструкциям. \nПри правильном заполнении данных " +
+            "напротив выбранного пукта меня будет стоять ✅",
+            makeOrderInterface()
         );
     };
 
@@ -241,11 +287,6 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                 scheduleMonth: 9
             }
         };
-        // Проверяем была ли запущена функция инициирующая заказ букета
-        if (!orderIsInitialised) {
-            console.log("Изначальная функция не была вызвана");
-            return;
-        }
         console.log("*** Запущена функция валидации даты");
 
         // В этом обхекте хранится информация о дате. Если она проходит все проверки, то содержимое
@@ -371,13 +412,12 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
     function launch(ctx) {
         orderIsInitialised = true;
         console.log("*** Запущена функция заказа букетов");
-        ctx.reply("Что ж, давайте начнем. Ответьте на пару вопросов и готово!");
         displayOrderInterface(ctx);
     }
 
-    launch.requestDate = requestDate;
-    launch.checkDate = checkDate;
-    launch.chooseBouquetType = chooseBouquetType;
+    bot.action('date_order', (ctx) => {
+
+    });
 
     global.order = launch;
 })();
