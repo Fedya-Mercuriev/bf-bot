@@ -265,7 +265,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                 scheduleMonth: 4
             },
             'may': {
-                matchExpression: "ма",
+                matchExpression: ['май', 'мая'],
                 fullName: "мая",
                 scheduleMonth: 5
             },
