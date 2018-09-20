@@ -123,7 +123,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                 ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
                 // Этот фрагмент кода выполняется если была нажата кнопка "Продолжить"
                 if (ctx.update['callback_query'].data === "продолжить") {
-                    ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
+                    ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "Загружаю меню ⌛️");
                     ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
                     // Выводим меню заказа
                     return displayOrderInterface(ctx);
@@ -370,11 +370,12 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                 console.log("Число месяца корректно. Получилась такая дата: " + dateObject.day + dateObject.month.fullName);
                 if (scheduleYear > new Date().getFullYear())  {
                     orderInfo.orderDate = "" + tempDateObj.day + " " + tempDateObj.month.fullName + " " + scheduleYear + " года";
+                    return true;
                 }
                 orderInfo.orderDate = "" + tempDateObj.day + " " + tempDateObj.month.fullName;
                 return true;
             } else {
-                outputErrorMessage(ctx, "В месяце, который вы ввели, нет числа" + tempDateObj.day + "!");
+                outputErrorMessage(ctx, "В месяце, который вы ввели, нет числа " + tempDateObj.day + "!");
                 dateObject.month = undefined;
                 dateObject.day = undefined;
                 return false;
@@ -434,7 +435,8 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
         console.log("*** Запущена функция заказа букетов");
         ctx.reply("Хорошо, давайте начнем!", Markup.keyboard([
             ['📱 Меню заказа'],
-            ['⛔️Отменить заказ⛔️']
+            ['📞 Связаться с магазином'],
+            ['⛔️Отменить заказ️']
         ])
             .oneTime()
             .resize()
