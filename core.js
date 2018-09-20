@@ -110,6 +110,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
 
     let requestDate = (ctx) => {
         console.log("*** Запущена функция, запрашивающая ввод даты");
+        if (orderInfo.orderDate) ctx.reply("⚠️ Вы ранее вводили эту дату: \n" + orderInfo.orderDate + "\n Эта дата будет перезаписана");
         ctx.reply("Выберите дату, на которую хотите заказать букет. \nНапишите дату самостоятельно или выберите из предложенных ниже вариантов. \n👍 Пример даты: 14 февраля. \nЕсли вы ввели не ту дату – просто напишите новую",
             Markup.inlineKeyboard([
                 // Если сегодня, тогда попросить указать точное время (эта фича под вопросом)
@@ -117,7 +118,6 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                 Markup.callbackButton('Завтра', 'Завтра')
             ]).extra());
 
-        (() => {
             // Реагирует на кнопки внутри функции валидации даты. Этих кнопки 3: "сегодня", "завтра" и "продолжить
             bot.on('callback_query', (ctx) => {
                 ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
@@ -137,24 +137,20 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
 
                         let oneDay = 0,
                             result;
-                        if (arguments[0]) oneDay = 86400000;
                         let thisDate = new Date(Date.now() + oneDay);
                         let currentMonth = months[thisDate.getMonth()],
                             currentDay = thisDate.getDate().toString();
                         result = currentDay + " " + currentMonth;
                         return result;
-                    })(true);
+                    })();
                     ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
-                    return ctx.reply("Нажмите на кнопку \"Продолжить\", чтобы продолжить заказ букета или введите другую дату",
-                        Markup.inlineKeyboard([
-                            // Если сегодня, тогда попросить указать точное время (эта фича под вопросом)
-                            Markup.callbackButton('Продолжить', 'продолжить'),
-                        ]).extra());
+                    return requestContinue(ctx);
                 } else {
                     orderInfo.orderDate = (() => {
                         const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
                         let result;
-                        let thisDate = new Date(Date.now());
+                        let oneDay = 86400000;
+                        let thisDate = new Date(Date.now() + oneDay);
                         let currentMonth = months[thisDate.getMonth()],
                             currentDay = thisDate.getDate().toString();
                         result = currentDay + " " + currentMonth;
@@ -175,7 +171,6 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
                     }
                 }
             });
-        })();
     };
 
     // Эта функция проверяет правильность введенного времени
@@ -437,12 +432,25 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
     function launch(ctx) {
         orderIsInitialised = true;
         console.log("*** Запущена функция заказа букетов");
+        ctx.reply("Хорошо, давайте начнем!", Markup.keyboard([
+            ['📱 Меню заказа'],
+            ['⛔️Отменить заказ⛔️']
+        ])
+            .oneTime()
+            .resize()
+            .extra()
+        );
+
         displayOrderInterface(ctx);
     }
 
     bot.action('date_order', (ctx) => {
         ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "Минуточку");
         requestDate(ctx);
+    });
+
+    bot.hears(/Меню заказа/i, (ctx) => {
+        displayOrderInterface(ctx);
     });
 
     global.order = launch;
