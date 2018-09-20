@@ -35,7 +35,8 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             bouquetType: "",
             bouquetPrice: undefined
         };
-    let validateDateCalled = false;
+    let validateDateCalled = false,
+        validateTimeCalled = false;
 // Эта функция проверяет были ли заполнены данные для заказа и собирает меню
 // Если какой-либо пункт меню был заполнен, напротив его кнопки вместе emoji ставится галочка
     let makeOrderInterface = () => {
@@ -99,8 +100,8 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
     };
 
 // Эта функция выводит сообщение с кнопкой, которую нуно нажать, чтобы продолжить вводить данные для заказа
-    let requestContinue = (ctx) => {
-        return ctx.reply("Нажмите на кнопку \"Продолжить\", чтобы продолжить заказ букета или введите другую дату",
+    let requestContinue = (ctx, additionalMsg) => {
+        return ctx.reply("Нажмите на кнопку \"Продолжить\", чтобы продолжить заказ букета или " + additionalMsg,
             Markup.inlineKeyboard([
                 // Если сегодня, тогда попросить указать точное время (эта фича под вопросом)
                 Markup.callbackButton('Продолжить', 'продолжить'),
@@ -131,32 +132,36 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             // Этот фрагмент кода выполняется если была нажата кнопка "Сегодня"
             else if (ctx.update['callback_query'].data === "Сегодня") {
                 // Рассчитывает дату заказа на сегодня
-                orderInfo.orderDate = (() => {
-                    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+                if (validateDateCalled) {
+                    orderInfo.orderDate = (() => {
+                        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
-                    let oneDay = 0,
-                        result;
-                    let thisDate = new Date(Date.now() + oneDay);
-                    let currentMonth = months[thisDate.getMonth()],
-                        currentDay = thisDate.getDate().toString();
-                    result = currentDay + " " + currentMonth;
-                    return result;
-                })();
-                ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
-                return requestContinue(ctx);
+                        let oneDay = 0,
+                            result;
+                        let thisDate = new Date(Date.now() + oneDay);
+                        let currentMonth = months[thisDate.getMonth()],
+                            currentDay = thisDate.getDate().toString();
+                        result = currentDay + " " + currentMonth;
+                        return result;
+                    })();
+                    ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
+                    return requestContinue(ctx, "введите другую дату");
+                }
             } else {
-                orderInfo.orderDate = (() => {
-                    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-                    let result;
-                    let oneDay = 86400000;
-                    let thisDate = new Date(Date.now() + oneDay);
-                    let currentMonth = months[thisDate.getMonth()],
-                        currentDay = thisDate.getDate().toString();
-                    result = currentDay + " " + currentMonth;
-                    return result;
-                })();
-                ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
-                requestContinue(ctx);
+                if (validateDateCalled) {
+                    orderInfo.orderDate = (() => {
+                        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+                        let result;
+                        let oneDay = 86400000;
+                        let thisDate = new Date(Date.now() + oneDay);
+                        let currentMonth = months[thisDate.getMonth()],
+                            currentDay = thisDate.getDate().toString();
+                        result = currentDay + " " + currentMonth;
+                        return result;
+                    })();
+                    ctx.reply("Хорошо, букет будет готов к " + orderInfo.orderDate);
+                    requestContinue(ctx);
+                }
             }
         });
         // Реагирует на текстовые сообщения внутри функции валидации даты
@@ -164,7 +169,7 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
             if (validateDateCalled) {
                 if(checkDate(ctx)) {
                     ctx.reply("Хорошо. Ваш букет будет готов к " + orderInfo.orderDate + ".");
-                    requestContinue(ctx);
+                    requestContinue(ctx, "введите другую дату");
                 } else {
                     outputErrorMessage(ctx, "Пожалуйста, ведите корректную дату!");
                 }
@@ -178,6 +183,9 @@ let workingHours = "Мы работаем с 11:00 до 19:00";
     let requestTime = (ctx) => {
         ctx.reply("Введите еще, пожалуйста, примерное время, когда придете за букетом. \nПожалуйста, указывайте время не раньше, чем через 2 часа от настоящего времени \nПример ввода времени: 17:30");
         console.log("Время запрошено!");
+        if (validateTimeCalled) {
+
+        }
     };
 
     let checkTime = (ctx) => {
