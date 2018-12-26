@@ -27,7 +27,11 @@ const about = new About();
 const order = new Order();
 module.exports = order;
 const dateValidation = require('./assets/order/validate/validate-date/date');
+const shippingValidation = require('./assets/order/validate/validate-shipping/shipping');
+const timeValidation = require('./assets/order/validate/validate-time/time');
 stage.register(dateValidation);
+stage.register(shippingValidation);
+stage.register(timeValidation);
 
 // (function order() {
 //     // Вшить в корень функции постоянную проверку специальной переменной для того, чтобы понять
@@ -637,7 +641,7 @@ bot.start((ctx) => {
     MainPage.offerBotHelp(ctx);
     bot.action('howtouse', (ctx) => {
         ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
-        ctx.reply('https://telegra.ph/CHernoviki-11-17');
+        ctx.reply('Здесь будет инструкция');
     })
 });
 
@@ -708,6 +712,5 @@ bot.hears('О нас', (ctx) => {
 bot.hears('Моя корзина', (ctx) => {
     cart.show(ctx);
 });
-
 
 bot.startPolling();
