@@ -1,19 +1,6 @@
 module.exports =  class ValidateMonth {
     constructor() {
         this.scheduleDates = {
-            // СКОРЕЕ ВСЕГО ЭТО НЕ НУЖНО
-            // 'today': {
-            //     matchExpression: "сегодн",
-            //     fullName: "сегодня",
-            //     scheduleDate: dayValidation.calculateDate.bind(this, true),
-            //     // specifyTime: true
-            // },
-            // 'tomorrow': {
-            //     matchExpression: "завтр",
-            //     fullName: "завтра",
-            //     scheduleDate: dayValidation.calculateDate.bind(this, false),
-            //     // specifyTime: true
-            // },
             'october': {
                 matchExpression: "окт",
                 fullName: "октября",

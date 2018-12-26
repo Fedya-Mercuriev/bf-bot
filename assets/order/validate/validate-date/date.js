@@ -11,7 +11,7 @@ const ServiceOps = require('../../../service-ops');
 const order = require('../../../../core');
 const validateMonth = new ValidateMonth();
 
-const identifyDate = require('../../identify-data');
+const identifyDate = require('./identify-data');
 const russifyDate = require('./russify-date');
 
 const dateValidation = new Scene('dateValidation');
@@ -61,9 +61,9 @@ class ValidateDate {
 
         ctx.reply(`Выберите дату, на которую хотите заказать букет.
         \nНапишите дату самостоятельно или выберите из предложенных ниже вариантов.
-        \nПримеры дат:
-        \n⚫ 14 февраля;
-        \n⚫ 14.02;
+        \nПримеры ввода дат:
+        \n• 14 февраля;
+        \n• 14.02;
         \nЕсли вы ввели не ту дату – просто напишите новую`,
             Markup.inlineKeyboard([
                 Markup.callbackButton('Сегодня', 'Сегодня'),
@@ -141,18 +141,20 @@ dateValidation.on('message', (ctx) => {
             let date = result.reverse();
 
             validateDate.date = date;
-            ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`);
-            ServiceOps.requestContinue(ctx, "введите другую дату");
+            ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
+                ServiceOps.requestContinue(ctx, "введите другую дату");
+            });
         })
         .catch((error) => {
             if (error.message === "сегодня") {
                 validateDate.date = validateDate.calculateDate(true);
-                ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`);
-                ServiceOps.requestContinue(ctx, "введите другую дату");
-            } else if (error.message === "завтра") {
+                ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
+                    ServiceOps.requestContinue(ctx, "введите другую дату");
+                });
                 validateDate.date = validateDate.calculateDate(false);
-                ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`);
-                ServiceOps.requestContinue(ctx, "введите другую дату");
+                ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
+                    ServiceOps.requestContinue(ctx, "введите другую дату");
+                });
             } else {
                 ctx.reply(error.message);
             }
@@ -165,19 +167,22 @@ dateValidation.on('callback_query', (ctx) => {
 
     if (ctx.update['callback_query'].data === "Сегодня") {
         validateDate.date = validateDate.calculateDate(true);
-        ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`);
-        ServiceOps.requestContinue(ctx, "введите другую дату");
+        ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
+            ServiceOps.requestContinue(ctx, "введите другую дату");
+        });
 
     } else if (ctx.update['callback_query'].data === "Завтра") {
         validateDate.date = validateDate.calculateDate(false);
-        ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`);
-        ServiceOps.requestContinue(ctx, "введите другую дату");
+        ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
+            ServiceOps.requestContinue(ctx, "введите другую дату");
+        });
 
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderDate', validateDate.date];
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx, "Выберите любой пункт в меню и следуйте инструкциям");
+        order.displayInterface(ctx, `Выберите любой пункт в меню и следуйте инструкциям.
+            \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`);
         ctx.scene.leave('dateValidation');
     }
 });
