@@ -31,13 +31,13 @@ module.exports = class Order {
             shipping: {
                 emoji: '🛵',
                 text: 'Способ получения букета',
-                callback_data: 'shippingType',
+                callback_data: 'shippingValidation',
                 data: this.info.shipping
             },
             orderTime: {
                 emoji: '⏱',
                 text: 'Время',
-                callback_data: 'timeOrder',
+                callback_data: 'timeValidation',
                 data: this.info.orderTime
             },
             bouquetType: {
@@ -91,7 +91,7 @@ module.exports = class Order {
             if (!this.buttons.hasOwnProperty(prop)) continue;
             let result = [];
             console.log(`${this.buttons[prop].text} = ${this.buttons[prop].data}`)
-            if (this.info[prop]) {
+            if (this.info[prop] !== undefined) {
                 result.push(Markup.callbackButton(`✅ ${this.buttons[prop].text}`, `${this.buttons[prop].callback_data}`));
                 buttonsArr.push(result);
             } else {
