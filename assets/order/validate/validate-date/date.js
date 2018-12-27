@@ -108,7 +108,8 @@ class ValidateDate {
 
     set date(date) {
         let [year, month, day] = date;
-        this.tempDate = new Date(year, month, day, 0, 0, 0);
+        this.tempDate = Date.parse(new Date(year, month, day, 0, 0, 0).toString());
+        console.log(this.tempDate);
     }
 }
 
