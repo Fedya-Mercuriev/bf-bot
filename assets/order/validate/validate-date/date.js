@@ -25,8 +25,6 @@ class ValidateDate {
         // this.validationCalled = false;
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate;
-        this.previousMessageId;
-        this.chatId;
     }
 
     calculateDate(isToday) {
@@ -53,10 +51,12 @@ class ValidateDate {
     }
 
     requestDate(ctx, orderInfo) {
+        let { orderDate } = orderInfo,
+            date = russifyDate(new Date(orderDate));
         console.log("*** Запущена функция, запрашивающая ввод даты ***");
 
         if (orderInfo.orderDate) {
-            ctx.reply(`⚠️ Вы ранее вводили эту дату: \n ${orderInfo.orderDate} \n Эта дата будет перезаписана`);
+            ctx.reply(`⚠️ Вы ранее вводили эту дату: \n ${date} \n Эта дата будет перезаписана`);
         }
 
         ctx.reply(`Выберите дату, на которую хотите заказать букет.
@@ -109,7 +109,7 @@ class ValidateDate {
     set date(date) {
         let [year, month, day] = date;
         this.tempDate = Date.parse(new Date(year, month, day, 0, 0, 0).toString());
-        console.log(this.tempDate);
+        order.setOrderInfo = ['orderDate', this.tempDate];
     }
 }
 
@@ -152,6 +152,7 @@ dateValidation.on('message', (ctx) => {
                 ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
                     ServiceOps.requestContinue(ctx, "введите другую дату");
                 });
+            } else if (error.message === "завтра") {
                 validateDate.date = validateDate.calculateDate(false);
                 ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
                     ServiceOps.requestContinue(ctx, "введите другую дату");
