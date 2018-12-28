@@ -24,6 +24,31 @@ class Shipping {
         )
     }
 
+    confirmShippingOverwrite(ctx, shipping) {
+        // Если был выбран самовывоз или указан адрес в виде строки
+        if (shipping === false || typeof shipping !== 'object') {
+            shipping = (shipping === false) ? "Самовывоз" : `(Доставка) ${shipping}`;
+            ctx.reply(`⚠️ Вы ранее выбрали этот способ доставки: ${shipping}`).then(() => {
+                return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
+                    [Markup.callbackButton('Перезаписать', 'overwriteData')],
+                    [Markup.callbackButton('Оставить', 'leaveData')]
+                ]).extra());
+            });
+            // Если была отправлена геопозиция
+        } else {
+            let [lat, lon] = shipping;
+            ctx.reply(`⚠️ Вы ранее выбрали этот способ доставки:`).then(() => {
+                return ctx.replyWithLocation(lat, lon);
+            }).then(() => {
+               return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
+                   [Markup.callbackButton('Перезаписать', 'overwriteData')],
+                   [Markup.callbackButton('Оставить', 'leaveData')]
+               ]).extra());
+            });
+            console.log(shipping);
+        }
+    }
+
     requestShippingInfo(ctx) {
         ctx.reply('Введите адрес вручную или отправьте мне геопозицию');
     }
@@ -53,7 +78,13 @@ class Shipping {
 const validateShipping = new Shipping();
 
 shippingValidation.enter((ctx) => {
-    validateShipping.requestShipping(ctx);
+    let {shipping} = order.getOrderInfo;
+
+    if (shipping !== undefined) {
+        validateShipping.confirmShippingOverwrite(ctx, shipping);
+    } else {
+        validateShipping.requestShipping(ctx);
+    }
 });
 
 shippingValidation.on('callback_query', (ctx) => {
@@ -66,6 +97,15 @@ shippingValidation.on('callback_query', (ctx) => {
 
     } else if (ctx.update['callback_query'].data === 'доставка') {
         validateShipping.requestShippingInfo(ctx);
+
+    } else if (ctx.update['callback_query'].data === 'overwriteData') {
+        validateShipping.requestShipping(ctx);
+
+    } else if (ctx.update['callback_query'].data === 'leaveData') {
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        order.displayInterface(ctx, `Выберите любой пункт в меню и следуйте инструкциям.
+            \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`);
+        ctx.scene.leave('shippingValidation');
 
     } else {
         order.setOrderInfo = ['shipping', validateShipping.shippingInfo];
