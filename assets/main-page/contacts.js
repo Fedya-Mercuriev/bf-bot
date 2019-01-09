@@ -14,12 +14,12 @@ class Contacts {
 
         this.workingHours = {
             weekdays: {
-                start: "10:00",
-                end: "20:00"
+                start: "10",
+                end: "20"
             },
             weekends: {
-                start: "11:00",
-                end: "19:00"
+                start: "11",
+                end: "19"
             }
         };
 
@@ -51,7 +51,7 @@ class Contacts {
         // Проверим выходной ли сейчас и сформируем строку с часами работы
         if (this._isWeekend()) {
             let {start, end} = this.workingHours.weekends;
-            workingHours = `Сегодня мы работаем с ${start} до ${end}`;
+            workingHours = `Сегодня мы работаем с ${start}:00 до ${end}:00`;
         } else {
             workingHours = "Сегодня мы работаем с 10:00 до 20:00";
         }
