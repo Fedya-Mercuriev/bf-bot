@@ -61,9 +61,23 @@ class Time {
         }
     }
 
+    confirmTimeOverwrite(ctx, time) {
+        let minutes = "" + new Date(this.validatedTime).getMinutes();
+        if (minutes.length === 1) {
+            minutes = "0" + minutes;
+        }
+        ctx.reply(`⚠️ Вы ранее вводили это время: ${new Date(time).getHours()}:${minutes}`).then(() => {
+            return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
+                [Markup.callbackButton('Перезаписать', 'overwriteData')],
+                [Markup.callbackButton('Оставить', 'leaveData')]
+            ]).extra());
+        });
+    }
+
     requestTime(ctx) {
         let { orderDate, shipping } = order.getOrderInfo,
-            estimatedTime = 2400000;
+            estimatedTime = 2400000,
+            additionalMessage = "";
             // closestTime = this._calculateClosestTime(),
             // hours = closestTime.getHours(),
             // minutes = closestTime.getMinutes();
@@ -72,12 +86,13 @@ class Time {
             () => {
                 if (shipping !== false) {
                     estimatedTime = 5400000;
+                    additionalMessage = " и доставить его к вам";
                 }
                 let { start, finish } = this._getWorkingHours(orderDate);
-                ctx.reply(`Введите самостоятельно желаемое время, когда хотите забрать букет.\n⚠️Пожалуйста, пишите время в формате: ЧЧ:ММ.\n⚠С учетом выбранного вами способа доставки нам потребуется ${new Date(estimatedTime).getMinutes()} мин., чтобы сделать букет. Имейте это ввиду когда будете указывать время\n🗓 Сегодня мы работаем с ${start}:00 до ${finish}:00`);
+                ctx.reply(`Введите самостоятельно желаемое время, когда хотите забрать букет.\n⚠️Пожалуйста, пишите время в формате: ЧЧ:ММ.\n⚠С учетом выбранного вами способа доставки нам потребуется ${estimatedTime / 60000} мин., чтобы сделать букет${additionalMessage}. Имейте это ввиду когда будете указывать время\n🗓 Сегодня мы работаем с ${start}:00 до ${finish}:00`);
             }).catch((error) => {
                 ctx.reply(`${error.message}`, Markup.inlineKeyboard(
-                    [Markup.callbackButton('В меню заказа', 'menu')]
+                    [Markup.callbackButton('В меню заказа', 'openMenu')]
                 ).extra());
             });
     }
@@ -238,9 +253,13 @@ class Time {
                 return this.checkTime(result);
             })
             .then((result) => {
+                let minutes = "" + new Date(result).getMinutes();
                 this.time = result;
+                if (minutes.length === 1) {
+                    minutes = "0" + minutes;
+                 }
                 console.log(`Текущее выбранное время: ${this.time}`);
-                ctx.reply(`✅ Хорошо, букет будет готов к ${new Date(result).getHours()}:${new Date(result).getMinutes()}`).then(() => {
+                ctx.reply(`✅ Хорошо, букет будет готов к ${new Date(result).getHours()}:${minutes}`).then(() => {
                     ServiceOps.requestContinue(ctx, "введите другое время");
                 });;
             }, (error) => {
@@ -255,7 +274,12 @@ class Time {
 const validateTime = new Time();
 
 timeValidation.enter((ctx) => {
-    validateTime.requestTime(ctx);
+    let { orderTime } = order.getOrderInfo;
+    if (orderTime !== undefined) {
+        validateTime.confirmTimeOverwrite(ctx, orderTime);
+    } else {
+        validateTime.requestTime(ctx);
+    }
 });
 
 timeValidation.on('callback_query', (ctx) => {
@@ -263,9 +287,19 @@ timeValidation.on('callback_query', (ctx) => {
    // if (ctx.update['callback_query'].data === 'Продолжить') {
    //     ctx.reply("Нажата кнопка \"Продолжить\"");
    // }
-    if (ctx.update['callback_query'].data === 'menu') {
+    if (ctx.update['callback_query'].data === 'openMenu') {
         order.displayInterface(ctx);
         ctx.scene.leave();
+
+        // Для обработки callback-кнопки "Перезаписать"
+    } else if (ctx.update['callback_query'].data === 'overwriteData') {
+        validateTime.requestTime(ctx);
+
+        // Для обработки callback-кнопки "Оставить"
+    } else if (ctx.update['callback_query'].data === 'leaveData') {
+        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        order.displayInterface(ctx);
+        ctx.scene.leave('timeValidation');
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderTime', validateTime.time];
