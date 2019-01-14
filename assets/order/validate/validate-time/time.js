@@ -164,6 +164,18 @@ class Time {
         });
     }
 
+    // Проверяет правильность времени
+    checkTimeRelevance(time) {
+        // time = [часы, минуты]
+        return new Promise((resolve, reject) => {
+            if (new Date(time[0]) > 23 || new Date(time[0]) < 0) {
+                reject(new Error(`⛔ Пожалуйста, введите корректное время!`));
+            } else {
+                resolve(time);
+            }
+        });
+    }
+
     // Проверяет введенные часы
     checkTime(timeArray) {
         let [hours, minutes] = timeArray,
@@ -247,8 +259,13 @@ class Time {
         //     console.log("• Выбранная дата: сегодня •");
         //     this.workingHours.start = new Date().getHours();
         // }
-        // Проверим валидность строки и подготовим ее к проверке
+        // Паспознаем время в строке и раскидаем на часы и минуты
         this.identifyTime(timeString)
+            // Проверим распознанное время на корректность
+            .then((result) => {
+                return this.checkTimeRelevance(result);
+            })
+
             .then((result) => {
                 return this.checkTime(result);
             })
