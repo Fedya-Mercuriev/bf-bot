@@ -209,13 +209,13 @@ dateValidation.on('callback_query', (ctx) => {
 
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
         console.log(ctx.update);
-        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         validateDate.requestDate(ctx);
 
         // Для обработки callback-кнопки "Оставить"
     } else if (ctx.update['callback_query'].data === 'leaveData') {
         console.log(ctx.update);
-        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx);
         ctx.scene.leave('dateValidation');
     } else {

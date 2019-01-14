@@ -66,7 +66,7 @@ class Time {
         if (minutes.length === 1) {
             minutes = "0" + minutes;
         }
-        ctx.reply(`⚠️ Вы ранее вводили это время: ${new Date(time).getHours()}:${minutes}`).then(() => {
+        ctx.replyWithHTML(`⚠️ Вы ранее вводили это время: <b>${new Date(time).getHours()}:${minutes}</b>`).then(() => {
             return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
                 [Markup.callbackButton('Перезаписать', 'overwriteData')],
                 [Markup.callbackButton('Оставить', 'leaveData')]
@@ -310,11 +310,12 @@ timeValidation.on('callback_query', (ctx) => {
 
         // Для обработки callback-кнопки "Перезаписать"
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         validateTime.requestTime(ctx);
 
         // Для обработки callback-кнопки "Оставить"
     } else if (ctx.update['callback_query'].data === 'leaveData') {
-        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx);
         ctx.scene.leave('timeValidation');
     } else {

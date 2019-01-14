@@ -28,7 +28,7 @@ class Shipping {
         // Если был выбран самовывоз или указан адрес в виде строки
         if (shipping === false || typeof shipping !== 'object') {
             shipping = (shipping === false) ? "Самовывоз" : `(Доставка) ${shipping}`;
-            ctx.reply(`⚠️ Вы ранее выбрали этот способ доставки: ${shipping}`).then(() => {
+            ctx.replyWithHTML(`⚠️ Вы ранее выбрали этот способ доставки: <b>${shipping}</b>`).then(() => {
                 return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
                     [Markup.callbackButton('Перезаписать', 'overwriteData')],
                     [Markup.callbackButton('Оставить', 'leaveData')]
@@ -98,10 +98,11 @@ shippingValidation.on('callback_query', (ctx) => {
         validateShipping.requestShippingInfo(ctx);
 
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         validateShipping.requestShipping(ctx);
 
     } else if (ctx.update['callback_query'].data === 'leaveData') {
-        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx);
         ctx.scene.leave('shippingValidation');
 
