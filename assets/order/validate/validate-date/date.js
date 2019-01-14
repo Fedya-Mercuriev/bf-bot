@@ -67,15 +67,9 @@ class ValidateDate {
         return new Date(year, month + 1, 0).getDate();
     }
 
-    requestDate(ctx, orderInfo) {
-        let { orderDate } = orderInfo,
-            date = russifyDate(new Date(orderDate));
+    requestDate(ctx) {
         console.log("*** Запущена функция, запрашивающая ввод даты ***");
-
-        if (orderInfo.orderDate) {
-            ctx.reply(`⚠️ Вы ранее вводили эту дату: \n ${date} \n Эта дата будет перезаписана`);
-        }
-
+        // Если время позднее для заказа на сегодня, убирает callback-кнопку "сегодня"
         this._checkCloseAvailableDates();
 
         ctx.reply(`Выберите дату, на которую хотите заказать букет.
@@ -89,6 +83,15 @@ class ValidateDate {
             //     Markup.callbackButton('Завтра', 'Завтра')
             // ]).extra());
             Markup.inlineKeyboard(this.availableCloseDates).extra());
+    }
+
+    confirmDateOverwrite(ctx, date) {
+        ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`).then(() => {
+            return ctx.reply("Перезаписать ее или оставить?", Markup.inlineKeyboard([
+                [Markup.callbackButton('Перезаписать', 'overwriteData')],
+                [Markup.callbackButton('Оставить', 'leaveData')]
+            ]).extra());
+        });
     }
 
     checkDate(dateArr) {
@@ -136,8 +139,14 @@ const validateDate = new ValidateDate();
 
 // Команды для сцены
 dateValidation.enter((ctx) => {
-    let orderInfo = order.getOrderInfo;
-    validateDate.requestDate(ctx, orderInfo);
+    let { orderDate } = order.getOrderInfo,
+        date = russifyDate(new Date(orderDate));
+
+    if (orderDate !== undefined) {
+        validateDate.confirmDateOverwrite(ctx, date);
+    } else {
+        validateDate.requestDate(ctx, orderDate);
+    }
 });
 
 dateValidation.on('message', (ctx) => {
@@ -198,6 +207,17 @@ dateValidation.on('callback_query', (ctx) => {
             ServiceOps.requestContinue(ctx, "введите другую дату");
         });
 
+    } else if (ctx.update['callback_query'].data === 'overwriteData') {
+        console.log(ctx.update);
+        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        validateDate.requestDate(ctx);
+
+        // Для обработки callback-кнопки "Оставить"
+    } else if (ctx.update['callback_query'].data === 'leaveData') {
+        console.log(ctx.update);
+        ctx.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        order.displayInterface(ctx);
+        ctx.scene.leave('dateValidation');
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderDate', validateDate.date];
