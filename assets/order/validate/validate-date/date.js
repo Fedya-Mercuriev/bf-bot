@@ -9,6 +9,7 @@ const ValidateMonth = require('./month');
 const ServiceOps = require('../../../service-ops');
 // const { Order } = require('../../order');
 const order = require('../../../../core');
+const Contacts = require("../../../main-page/contacts");
 const validateMonth = new ValidateMonth();
 
 const identifyDate = require('./identify-data');
@@ -25,6 +26,9 @@ class ValidateDate {
         // this.validationCalled = false;
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate;
+        this.availableCloseDates = [
+            Markup.callbackButton('Сегодня', 'Сегодня'),
+            Markup.callbackButton('Завтра', 'Завтра')];
     }
 
     calculateDate(isToday) {
@@ -40,13 +44,26 @@ class ValidateDate {
         result.push(currentDate.getFullYear());
         result.push(currentDate.getMonth());
         result.push(currentDate.getDate());
-        console.log(`при подсчете \"Сегодня\" или \"Завтра\" получилось: ${result}`);
 
         return result;
     }
 
+    _checkCloseAvailableDates() {
+        let now = new Date(),
+            workingHours;
+        // Подберем соответствующие дню недели часы работы
+        if (now.getDate() === 6 || now.getDate() === 0) {
+            workingHours = Contacts.workingHours.weekends;
+        } else {
+            workingHours = Contacts.workingHours.weekdays;
+        }
+        // Если в сегодняшний день киент делает заказ и время позднее (магаизн уже закрыт)
+        if (now.getHours() > workingHours.finish) {
+            this.availableCloseDates.splice(0, 1);
+        }
+    }
+
     _calculateDaysInMonth(month, year) {
-        console.log(`Дней в месяце ${month} - ${new Date(year, month + 1, 0).getDate()}`);
         return new Date(year, month + 1, 0).getDate();
     }
 
@@ -59,16 +76,19 @@ class ValidateDate {
             ctx.reply(`⚠️ Вы ранее вводили эту дату: \n ${date} \n Эта дата будет перезаписана`);
         }
 
+        this._checkCloseAvailableDates();
+
         ctx.reply(`Выберите дату, на которую хотите заказать букет.
         \nНапишите дату самостоятельно или выберите из предложенных ниже вариантов.
         \nПримеры ввода дат:
-        \n• 14 февраля;
-        \n• 14.02;
+        \n✅ 14 февраля;
+        \n✅ 14.02;
         \nЕсли вы ввели не ту дату – просто напишите новую`,
-            Markup.inlineKeyboard([
-                Markup.callbackButton('Сегодня', 'Сегодня'),
-                Markup.callbackButton('Завтра', 'Завтра')
-            ]).extra());
+            // Markup.inlineKeyboard([
+            //     Markup.callbackButton('Сегодня', 'Сегодня'),
+            //     Markup.callbackButton('Завтра', 'Завтра')
+            // ]).extra());
+            Markup.inlineKeyboard(this.availableCloseDates).extra());
     }
 
     checkDate(dateArr) {
@@ -90,7 +110,6 @@ class ValidateDate {
                 }
 
                 if (day !== 0 && day <= this._calculateDaysInMonth(month, scheduleYear)) {
-                    console.log(`Число месяца корректно`);
                     dateArr.push(scheduleYear);
                     result = dateArr;
                     resolve(result);
