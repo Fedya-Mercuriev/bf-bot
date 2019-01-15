@@ -14,12 +14,12 @@ class Contacts {
 
         this.workingHours = {
             weekdays: {
-                start: "10",
-                end: "20"
+                start: 10,
+                finish: 20
             },
             weekends: {
-                start: "11",
-                end: "19"
+                start: 11,
+                finish: 19
             }
         };
 
