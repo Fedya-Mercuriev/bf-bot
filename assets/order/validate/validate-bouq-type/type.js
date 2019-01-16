@@ -123,7 +123,8 @@ bouqtypeValidation.on('message', (ctx) => {
     } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
         ctx.reply("Отменяю заказ!(нет)");
     } else {
-        ctx.reply("Извините, в данном разделе я не воспринимаю текст. Потыкайте лучше кнопки");
+        ctx.reply(`Извините, в данном разделе я не воспринимаю текст.\nВыберите нужный вам тип букета, кликнув по одной из кнопок ниже`,
+            Markup.inlineKeyboard(validateType.makeAvailableTypes()).extra());
     }
 });
 
