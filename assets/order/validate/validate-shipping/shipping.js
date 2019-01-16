@@ -116,7 +116,7 @@ shippingValidation.on('message', (ctx) => {
     if (ctx.updateSubTypes.indexOf('location') !== -1) {
         validateShipping.shippingInfo = [ctx.update.message.location.latitude, ctx.update.message.location.longitude];
         let [latitude, longitude] = validateShipping.shippingInfo;
-        ctx.reply("Вот что вы ввели:");
+        ctx.reply("Вот выслали эту геопозицию:");
         ctx.telegram.sendLocation(ctx.chat.id, latitude, longitude).then(() => {
             ServiceOps.requestContinue(ctx, "введите другой адрес");
         })
