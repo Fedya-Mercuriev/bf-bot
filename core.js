@@ -24,14 +24,16 @@ const ServiceOperations = require("./assets/service-ops");
 const gallery = new Gallery();
 const cart = new Cart();
 const about = new About();
-const order = new Order();
+let order = new Order();
 module.exports = order;
 const dateValidation = require('./assets/order/validate/validate-date/date');
 const shippingValidation = require('./assets/order/validate/validate-shipping/shipping');
 const timeValidation = require('./assets/order/validate/validate-time/time');
+const bouqTypeValidation = require('./assets/order/validate/validate-bouq-type/type');
 stage.register(dateValidation);
 stage.register(shippingValidation);
 stage.register(timeValidation);
+stage.register(bouqTypeValidation);
 
 bot.use(session());
 bot.use(stage.middleware());
@@ -85,6 +87,7 @@ bot.hears(/💐 Заказать букет/, (ctx) => {
            order.displayInterface(ctx, "Выберите любой пункт в меню");
        } else {
            try {
+               console.log(ctx.update['callback_query'].data);
                ctx.scene.enter(ctx.update['callback_query'].data);
            } catch (error) {
                // ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
