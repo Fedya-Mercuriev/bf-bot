@@ -1,5 +1,6 @@
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
+const Contacts = require("./main-page/contacts");
 
 class ServiceOperations {
     constructor() {
@@ -12,10 +13,13 @@ class ServiceOperations {
             ]).extra());
     }
 
-    returnToMenu() {
-        return Markup.inlineKeyboard([
-            Markup.callbackButton('Вернуться в меню', 'returnToMenu')
-        ]).extra()
+    returnToMenu(ctx, callback, sceneName) {
+        callback(ctx);
+        ctx.scene.leave(sceneName);
+    }
+
+    displayPhoneNumber(ctx) {
+        return Contacts.showPhoneNumber(ctx);
     }
 
     processInputData(command, ctx, callback, sceneName = null) {

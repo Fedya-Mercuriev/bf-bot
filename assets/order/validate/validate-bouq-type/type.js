@@ -14,11 +14,17 @@ class BouqType {
         this.availableTypes = [
             // name - для текста на кнопке, data - по ней далее будет предлагаться цена
             {
-                name: "свадебный",
+                emoji: "👰🏻",
+                name: "Свадебный",
                 data: "wedding"
             }, {
-                name: "для жены",
+                emoji: "️💁🏻‍♀️",
+                name: "Для жены",
                 data: "for wife"
+            }, {
+                emoji: "🕺🏻",
+                name: "Для пацанов",
+                data: "fellas"
             }
         ];
         this.welcomeMsg = `Пожалуйста, выберите желаемый тип букета из предложенных вариантов`;
@@ -32,7 +38,7 @@ class BouqType {
     makeAvailableTypes() {
         let result = [];
         for (let i = 0; i < this.availableTypes.length; i++) {
-            result.push([Markup.callbackButton(this.availableTypes[i].name, this.availableTypes[i].data)])
+            result.push([Markup.callbackButton(`${this.availableTypes[i].emoji} ${this.availableTypes[i].name}`, this.availableTypes[i].data)])
         }
         return result;
         // return array
@@ -45,9 +51,9 @@ class BouqType {
 
     confirmDataRewrite(ctx, bouqType) {
         let typeName= this.translateBouqTypeName(bouqType);
-        ctx.replyWithHTML(`Вы ранее выбрали этот тип букета: <b>"${typeName}"</b>. \n Выберите новый или оставите этот?`,
+        ctx.replyWithHTML(`Вы ранее выбрали этот тип букета: <b>"${typeName}"</b>. \nХотите выбрать другой или оставить этот?`,
         Markup.inlineKeyboard([
-            [Markup.callbackButton('Выбрать новый', 'overwriteData')],
+            [Markup.callbackButton('Выбрать другой', 'overwriteData')],
             [Markup.callbackButton('Оставить', 'leaveData')]
         ]).extra());
     }
@@ -97,12 +103,27 @@ bouqtypeValidation.on('callback_query', (ctx) => {
         console.log(ctx.update['callback_query']);
         validateType.setChosenCategory(ctx, ctx.update['callback_query'].data);
 
+        // Обрабатывает клик по кнопке "Продолжить"
     } else {
         ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
         order.setOrderInfo = ['bouquetType', validateType.chosenType];
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx);
         ctx.scene.leave('bouqtypeValidation');
+    }
+});
+
+bouqtypeValidation.on('message', (ctx) => {
+    if (ctx.update.message.text.match(/меню заказа/gi)) {
+        ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'bouqtypeValidation');
+
+    } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
+        ServiceOps.displayPhoneNumber(ctx);
+
+    } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
+        ctx.reply("Отменяю заказ!(нет)");
+    } else {
+        ctx.reply("Извините, в данном разделе я не воспринимаю текст. Потыкайте лучше кнопки");
     }
 });
 

@@ -303,13 +303,11 @@ timeValidation.enter((ctx) => {
 
 timeValidation.on('callback_query', (ctx) => {
     ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
-   // if (ctx.update['callback_query'].data === 'Продолжить') {
-   //     ctx.reply("Нажата кнопка \"Продолжить\"");
-   // }
+
     if (ctx.update['callback_query'].data === 'openMenu') {
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx);
-        ctx.scene.leave('timeValidation');
+        ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'timeValidation');
+        // ctx.scene.leave('timeValidation');
 
         // Для обработки callback-кнопки "Перезаписать"
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
@@ -318,10 +316,11 @@ timeValidation.on('callback_query', (ctx) => {
         // Для обработки callback-кнопки "Оставить"
     } else if (ctx.update['callback_query'].data === 'leaveData') {
         ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'timeValidation');
+
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderTime', validateTime.time];
-        let { orderTime } = order.getOrderInfo;
+        // let { orderTime } = order.getOrderInfo;
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx);
         ctx.scene.leave('timeValidation');
@@ -329,7 +328,18 @@ timeValidation.on('callback_query', (ctx) => {
 });
 
 timeValidation.on('message', (ctx) => {
-    validateTime.validateTime(ctx, ctx.update.message.text);
+
+    if (ctx.update.message.text.match(/Меню заказа/i)) {
+        ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'timeValidation');
+
+    } else if (ctx.update.message.text.match(/Связаться с магазином/i)) {
+        ServiceOps.displayPhoneNumber(ctx);
+
+    } else if (ctx.update.message.text.match(/Отменить заказ/i)) {
+        ctx.reply("Типа отменяем заказ");
+    } else {
+        validateTime.validateTime(ctx, ctx.update.message.text);
+    }
 });
 
 module.exports = validateTime;

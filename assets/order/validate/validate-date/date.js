@@ -77,10 +77,6 @@ class ValidateDate {
         \n✅ 14 февраля;
         \n✅ 14.02;
         \nЕсли вы ввели не ту дату – просто напишите новую`,
-            // Markup.inlineKeyboard([
-            //     Markup.callbackButton('Сегодня', 'Сегодня'),
-            //     Markup.callbackButton('Завтра', 'Завтра')
-            // ]).extra());
             Markup.inlineKeyboard(this.availableCloseDates).extra());
     }
 
@@ -150,14 +146,15 @@ dateValidation.enter((ctx) => {
 });
 
 dateValidation.on('message', (ctx) => {
-    if (ctx.update.message.text.match(/Меню заказа/i)) {
-        order.displayInterface(ctx, `Выберите любой пункт в меню и следуйте инструкциям.
-            \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`);
-        ctx.scene.leave('dateValidation');
-    } else if (ctx.update.message.text.match(/Связаться с магазином/i)) {
-        Contacts.showPhoneNumber(ctx);
-    } else if (ctx.update.message.text.match(/Отменить заказ/i)) {
+    if (ctx.update.message.text.match(/меню заказа/i)) {
+        ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
+
+    } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
+        ServiceOps.displayPhoneNumber(ctx);
+
+    } else if (ctx.update.message.text.match(/отменить заказ/i)) {
         ctx.reply("Отменяем заказ");
+
     } else {
         identifyDate(ctx.message.text)
             .then((result) => {
@@ -218,16 +215,12 @@ dateValidation.on('callback_query', (ctx) => {
         });
 
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
-        // ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
-        validateDate.requestDate(ctx);
 
         // Для обработки callback-кнопки "Оставить"
     } else if (ctx.update['callback_query'].data === 'leaveData') {
-        // ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'dateValidation');
-        // order.displayInterface(ctx);
-        // ctx.scene.leave('dateValidation');
+
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderDate', validateDate.date];

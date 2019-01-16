@@ -125,12 +125,14 @@ shippingValidation.on('message', (ctx) => {
         let message = ctx.message.text;
         // Если была нажата кнопка "меню заказа" или введено аналогичное сообщение
         if (message.match(/Меню заказа/gi)) {
-            order.displayInterface(ctx);
+            ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'shippingValidation');
+
         } else if (message.match(/Связаться с магазином/gi)) {
-            Contacts.showPhoneNumber(ctx);
+            ServiceOps.displayPhoneNumber(ctx);
+
         } else if (message.match(/Отменить заказ/gi)) {
             order.cancelOrder(ctx);
-            ctx.scene.leave('shippingValidation');
+
         } else {
             validateShipping.shippingInfo = (ctx.update.message.text);
             ctx.reply(`🗺 Вы ввели этот адрес: ${validateShipping.shippingInfo}`).then(() => {
