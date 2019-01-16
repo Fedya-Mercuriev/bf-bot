@@ -218,14 +218,16 @@ dateValidation.on('callback_query', (ctx) => {
         });
 
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        // ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
         validateDate.requestDate(ctx);
 
         // Для обработки callback-кнопки "Оставить"
     } else if (ctx.update['callback_query'].data === 'leaveData') {
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx);
-        ctx.scene.leave('dateValidation');
+        // ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'dateValidation');
+        // order.displayInterface(ctx);
+        // ctx.scene.leave('dateValidation');
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderDate', validateDate.date];

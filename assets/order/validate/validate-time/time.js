@@ -307,27 +307,23 @@ timeValidation.on('callback_query', (ctx) => {
    //     ctx.reply("Нажата кнопка \"Продолжить\"");
    // }
     if (ctx.update['callback_query'].data === 'openMenu') {
-        order.displayInterface(ctx);
-        ctx.scene.leave();
-
-        // Для обработки callback-кнопки "Перезаписать"
-    } else if (ctx.update['callback_query'].data === 'overwriteData') {
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        validateTime.requestTime(ctx);
-
-        // Для обработки callback-кнопки "Оставить"
-    } else if (ctx.update['callback_query'].data === 'leaveData') {
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx);
         ctx.scene.leave('timeValidation');
+
+        // Для обработки callback-кнопки "Перезаписать"
+    } else if (ctx.update['callback_query'].data === 'overwriteData') {
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateTime.requestTime.bind(validateTime));
+
+        // Для обработки callback-кнопки "Оставить"
+    } else if (ctx.update['callback_query'].data === 'leaveData') {
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'timeValidation');
     } else {
         // Обработать кнопку "Продолжить"
         order.setOrderInfo = ['orderTime', validateTime.time];
         let { orderTime } = order.getOrderInfo;
-        console.log(`Время заказа: ${orderTime}`);
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx, `Выберите любой пункт в меню и следуйте инструкциям.
-            \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`);
+        order.displayInterface(ctx);
         ctx.scene.leave('timeValidation');
     }
 });
