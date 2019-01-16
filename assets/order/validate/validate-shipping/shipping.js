@@ -98,18 +98,15 @@ shippingValidation.on('callback_query', (ctx) => {
         validateShipping.requestShippingInfo(ctx);
 
     } else if (ctx.update['callback_query'].data === 'overwriteData') {
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        validateShipping.requestShipping(ctx);
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateShipping.requestShipping.bind(validateShipping));
 
     } else if (ctx.update['callback_query'].data === 'leaveData') {
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx);
-        ctx.scene.leave('shippingValidation');
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'shippingValidation');
 
     } else {
         order.setOrderInfo = ['shipping', validateShipping.shippingInfo];
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx, "Выберите любой пункт в меню и следуйте инструкциям");
+        order.displayInterface(ctx);
         ctx.scene.leave('shippingValidation');
     }
 });
