@@ -1,0 +1,36 @@
+{
+  "text": "blumenfrau-bot",
+  "version": "1.0.0",
+  "description": "A selling telegram-bot",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fedya-Mercuriev/bf-bot.git"
+  },
+  "keywords": [
+    "telegraf",
+    "telegram",
+    "bot",
+    "es6",
+    "nodejs"
+  ],
+  "author": "Glenn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Fedya-Mercuriev/bf-bot/issues"
+  },
+  "homepage": "https://github.com/Fedya-Mercuriev/bf-bot#readme",
+  "dependencies": {
+    "telegraf": "^3.23.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-preset-env": "^1.7.0",
+    "webpack": "^4.27.1",
+    "webpack-cli": "^3.1.2"
+  }
+}
