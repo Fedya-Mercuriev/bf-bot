@@ -1,0 +1,32 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  SERVICE: telegram_bot
+  IMAGE_NAME: registry.gitlab.com/qs-time-tracker/${SERVICE}:$CI_BUILD_REF_NAME
+
+build:
+  stage: build
+  script:
+    - docker build -t SERVICE .
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+    - docker push
+  only:
+    - /^feature.*$/
+    - master
+  tags:
+    - docker
+
+deploy:
+  stage: deploy
+  services:
+    - docker:dind
+  script:
+   - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
+   - docker pull $IMAGE
+   - docker run -d \
+                -p 443:443 \
+                -p 8080:8080 \
+                -e TOKEN=${TOKEN} \
+                -t $SERVICE $IMAGE_NAME
