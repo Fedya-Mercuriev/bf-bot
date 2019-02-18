@@ -4,7 +4,7 @@ stages:
 
 variables:
   SERVICE: telegram_bot
-  IMAGE_NAME: registry.gitlab.com/qs-time-tracker/${SERVICE}:${CI_BUILD_REF_NAME}
+  IMAGE_NAME: registry.gitlab.com/Fedya-Mercuriev/bf-bot/${SERVICE}:${CI_BUILD_REF_NAME}
 
 build:
   stage: build
