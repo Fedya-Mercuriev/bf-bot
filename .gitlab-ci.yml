@@ -30,8 +30,8 @@ deploy:
                 -p 8080:8080 \
                 -e TOKEN=${TOKEN} \
                 -t $SERVICE $IMAGE_NAME
- only:
-   - /^feature.*$/
-   - master
- tags:
-   - beta-deploy
+   only:
+    - /^feature.*$/
+    - master
+   tags:
+    - beta-deploy
