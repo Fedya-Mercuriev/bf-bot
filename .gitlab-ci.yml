@@ -4,7 +4,7 @@ stages:
 
 variables:
   SERVICE: bf-bot
-  IMAGE_NAME: registry.gitlab.com/Fedya-Mercuriev/${SERVICE}:${CI_BUILD_REF_NAME}
+  IMAGE_NAME: registry.gitlab.com/fedya-mercuriev/${SERVICE}:${CI_BUILD_REF_NAME}
 
 build:
   stage: build
