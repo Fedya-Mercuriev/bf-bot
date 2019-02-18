@@ -12,7 +12,7 @@ build:
   services:
     - docker:dind
   script:
-    - docker build -t ${SERVICE} .
+    - docker build -t ${IMAGE_NAME} .
     - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
     - docker push ${IMAGE_NAME}
   only:
