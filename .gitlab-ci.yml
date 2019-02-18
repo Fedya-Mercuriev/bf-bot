@@ -8,6 +8,7 @@ variables:
 
 build:
   stage: build
+  image: docker
   script:
     - docker build -t SERVICE .
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN registry.gitlab.com
@@ -20,6 +21,7 @@ build:
 
 deploy:
   stage: deploy
+  image: docker
   services:
     - docker:dind
   script:
