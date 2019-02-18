@@ -23,17 +23,18 @@ build:
 
 deploy:
   stage: deploy
-  image: docker
+  services:
+    - docker:dind
   script:
-   - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
-   - docker pull ${IMAGE}
-   - docker run -d \
-                -p 443:443 \
-                -p 8080:8080 \
-                -e TOKEN=${TOKEN} \
-                -t ${SERVICE} ${IMAGE}
+    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
+    - docker pull ${IMAGE}
+    - docker run -d \
+                 -p 443:443 \
+                 -p 8080:8080 \
+                 -e TOKEN=${TOKEN} \
+                 -t ${SERVICE} ${IMAGE}
   only:
-   - /^feature.*$/
-   - master
+    - /^feature.*$/
+    - master
   tags:
-   - beta-deploy
+    - beta-deploy
