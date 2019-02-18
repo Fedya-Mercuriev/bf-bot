@@ -23,6 +23,7 @@ build:
 
 deploy:
   stage: deploy
+  image: docker
   services:
     - docker:dind
   script:
