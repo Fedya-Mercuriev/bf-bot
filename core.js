@@ -8,7 +8,7 @@ const Scene = require('telegraf/scenes/base');
 const { Markup } = Telegraf;
 const { leave } = Stage;
 const config = require('./assets/config');
-const bot = new Telegraf(config.telegram_token);
+const bot = new Telegraf(process.env.TOKEN);
 exports.bot = bot;
 const stage = new Stage();
 
