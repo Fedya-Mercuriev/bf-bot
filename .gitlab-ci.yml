@@ -14,7 +14,7 @@ build:
   script:
     - docker build -t ${SERVICE} .
     - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
-    - docker push
+    - docker push ${IMAGE_NAME}
   only:
     - /^feature.*$/
     - master
