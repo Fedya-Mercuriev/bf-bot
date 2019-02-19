@@ -1,4 +1,4 @@
-FROM node:latest
+FROM mhart/alpine-node:latest
 
 MAINTAINER Gleb Gorkoltsev <gleb.gorkoltsev@yandex.ru>
 
