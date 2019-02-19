@@ -19,7 +19,6 @@ build:
     - /^feature.*$/
     - master
   tags:
-    - beta-deploy
     - docker
 
 deploy:
