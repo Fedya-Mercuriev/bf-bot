@@ -25,14 +25,15 @@ build:
 deploy:
   stage: deploy
   script:
+    - docker rm $(docker ps -aq) || true
+    - docker rmi $(docker images -aq) || true
     - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
     - docker pull $IMAGE
-    - docker images -a
     - docker run -d
                  -p 443:443
                  -p 8080:8080
                  -e TOKEN=${TOKEN}
-                 -t ${SERVICE} ${SERVICE}
+                 --name $SERVICE $IMAGE
   only:
     - /^feature.*$/
     - master
