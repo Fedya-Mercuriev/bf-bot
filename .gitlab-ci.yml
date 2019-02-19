@@ -30,7 +30,7 @@ deploy:
                  -p 443:443
                  -p 8080:8080
                  -e TOKEN=${TOKEN}
-                 -t ${SERVICE} ${IMAGE}
+                 -t ${SERVICE} ${SERVICE}
   only:
     - /^feature.*$/
     - master
