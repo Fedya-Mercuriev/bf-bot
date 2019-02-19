@@ -24,9 +24,9 @@ build:
 deploy:
   stage: deploy
   script:
-    - sudo docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
-    - sudo docker pull ${IMAGE}
-    - sudo docker run -d \
+    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
+    - docker pull ${IMAGE}
+    - docker run -d \
                  -p 443:443 \
                  -p 8080:8080 \
                  -e TOKEN=${TOKEN} \
