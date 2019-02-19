@@ -31,7 +31,7 @@ deploy:
     - docker run -d
                  -p 443:443
                  -p 8080:8080
-                 -env TOKEN=${TOKEN}
+                 --env TOKEN=${TOKEN}
                  --name $SERVICE $IMAGE
   only:
     - /^feature.*$/
