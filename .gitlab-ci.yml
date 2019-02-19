@@ -24,7 +24,7 @@ build:
 deploy:
   stage: deploy
   variables:
-    TOKEN: "${TOKEN}"
+    TOKEN: $TOKEN
   script:
     - docker rm -f $(docker ps -aq) || true
     - docker rmi -f $(docker images -aq) || true

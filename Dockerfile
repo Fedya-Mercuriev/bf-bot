@@ -1,4 +1,4 @@
-FROM node:latest
+FROM node:10.15-slim
 
 MAINTAINER Gleb Gorkoltsev <gleb.gorkoltsev@yandex.ru>
 
