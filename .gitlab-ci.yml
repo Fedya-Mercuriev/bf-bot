@@ -26,12 +26,12 @@ deploy:
   stage: deploy
   script:
     - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
-    - docker pull ${SERVICE}:${CI_BUILD_REF_NAME}
+    - docker pull ${SERVICE}
     - docker run -d
                  -p 443:443
                  -p 8080:8080
                  -e TOKEN=${TOKEN}
-                 -t ${SERVICE} ${SERVICE}:${CI_BUILD_REF_NAME}
+                 -t ${SERVICE} ${SERVICE}
   only:
     - /^feature.*$/
     - master
