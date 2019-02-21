@@ -18,7 +18,6 @@ build:
   only:
     - /^feature.*$/
     - master
-#  when: manual
   tags:
     - docker
 

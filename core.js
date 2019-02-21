@@ -9,12 +9,6 @@ const Scene = require('telegraf/scenes/base');
 const { Markup } = Telegraf;
 const { leave } = Stage;
 const config = require('./assets/config');
-//const socksAgent = new SocksAgent({
-//  socksHost: config.proxy.host,
-//  socksPort: config.proxy.port,
-//  socksUsername: config.proxy.login,
-//  socksPassword: config.proxy.psswd,
-//});
 const bot = new Telegraf(process.env.TOKEN)
 exports.bot = bot;
 const stage = new Stage();
