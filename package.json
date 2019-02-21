@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/Fedya-Mercuriev/bf-bot#readme",
   "dependencies": {
-    "telegraf": "^3.23.1"
+    "telegraf": "^3.273.1"
   },
   "devDependencies": {
     "babel-core": "^6.26.3",
