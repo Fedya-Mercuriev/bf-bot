@@ -1,5 +1,6 @@
 'use strict';
 
+const SocksAgent = require('socks5-https-client/lib/Agent');
 const Telegraf = require('telegraf');
 const Extra = require('telegraf/extra');
 const session = require('telegraf/session');
@@ -8,7 +9,15 @@ const Scene = require('telegraf/scenes/base');
 const { Markup } = Telegraf;
 const { leave } = Stage;
 const config = require('./assets/config');
-const bot = new Telegraf(process.env.TOKEN);
+const socksAgent = new SocksAgent({
+  socksHost: config.proxy.host,
+  socksPort: config.proxy.port,
+  socksUsername: config.proxy.login,
+  socksPassword: config.proxy.psswd,
+});
+const bot = new Telegraf(process.env.TOKEN,{
+  telegram: { agent: socksAgent }
+});
 exports.bot = bot;
 const stage = new Stage();
 
