@@ -28,7 +28,7 @@ deploy:
   script:
     - docker rm -f $(docker ps -aq) || true
     - docker rmi -f $(docker images -aq) || true
-    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} registry.gitlab.com
     - docker pull $IMAGE
     - docker run -d
                  -p 443:443
