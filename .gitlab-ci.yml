@@ -13,7 +13,7 @@ build:
     - docker:dind
   script:
     - docker build -t ${IMAGE} .
-    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} registry.gitlab.com
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} registry.gitlab.com
     - docker push ${IMAGE}
   only:
     - /^feature.*$/
@@ -24,7 +24,7 @@ build:
 deploy:
   stage: deploy
   variables:
-    TOKEN: $TOKEN
+    TOKEN: "${TOKEN}"
   script:
     - docker rm -f $(docker ps -aq) || true
     - docker rmi -f $(docker images -aq) || true
