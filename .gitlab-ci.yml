@@ -24,12 +24,11 @@ build:
 
 deploy:
   stage: deploy
-#  variables:
-#    TOKEN: "${TOKEN}"
   script:
     - docker rm -f $(docker ps -aq) || true
     - docker rmi -f $(docker images -aq) || true
     - TOKEN=${TOKEN}
+    - echo $TOKEN
     - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} registry.gitlab.com
     - docker pull $IMAGE
     - docker run -d
