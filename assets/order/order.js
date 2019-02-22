@@ -15,8 +15,7 @@ module.exports = class Order {
             bouquetPrice: undefined
         };
         this.orderIsInitialised = false;
-        this.welcomeMsg = `Выберите любой пункт в меню и следуйте инструкциям.
-            \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`;
+        this.welcomeMsg = `Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`;
 
         // Инвойс формируется в конце
         this.invoice = new Invoice();
@@ -43,7 +42,7 @@ module.exports = class Order {
             bouquetType: {
                 emoji: '💐',
                 text: 'Тип букета',
-                callback_data: 'bouqType',
+                callback_data: 'bouqtypeValidation',
                 data: this.info.bouquetType
             },
             bouquetPrice: {
@@ -90,7 +89,6 @@ module.exports = class Order {
         for (let prop in this.buttons) {
             if (!this.buttons.hasOwnProperty(prop)) continue;
             let result = [];
-            console.log(`${this.buttons[prop].text} = ${this.buttons[prop].data}`)
             if (this.info[prop] !== undefined) {
                 result.push(Markup.callbackButton(`✅ ${this.buttons[prop].text}`, `${this.buttons[prop].callback_data}`));
                 buttonsArr.push(result);
@@ -103,7 +101,8 @@ module.exports = class Order {
         return Markup.inlineKeyboard(buttonsArr).extra();
     }
 
-    displayInterface(ctx, msg) {
+    displayInterface(ctx) {
+        let msg = `Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`;
         return ctx.reply(msg, this.makeInterface());
     }
 
@@ -113,9 +112,8 @@ module.exports = class Order {
         }
         this.orderIsInitialised = false;
         ctx.reply("❌ Заказ отменен!");
-        for (let prop in this.orderInfo) {
-            if (!this.orderInfo.hasOwnProperty(prop)) continue;
-            this.orderInfo[prop] = undefined;
+        for (let prop in this.getOrderInfo) {
+            this.setOrderInfo = [prop, undefined];
         }
     }
 };
