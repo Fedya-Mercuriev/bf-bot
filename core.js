@@ -1,6 +1,5 @@
 'use strict';
 
-const SocksAgent = require('socks5-https-client/lib/Agent');
 const Telegraf = require('telegraf');
 const Extra = require('telegraf/extra');
 const session = require('telegraf/session');
@@ -19,7 +18,7 @@ const Gallery = require("./assets/main-page/gallery");
 const Contacts = require("./assets/main-page/contacts");
 const Cart = require("./assets/main-page/cart");
 const Order = require("./assets/order/order");
-// const Date = require("./assets/order/validate-date/date");
+// const Date = require("./src/order/validate-date/date");
 const ServiceOperations = require("./assets/service-ops");
 
 const gallery = new Gallery();
@@ -27,14 +26,18 @@ const cart = new Cart();
 const about = new About();
 let order = new Order();
 module.exports = order;
+// Сцены
 const dateValidation = require('./assets/order/validate/validate-date/date');
 const shippingValidation = require('./assets/order/validate/validate-shipping/shipping');
 const timeValidation = require('./assets/order/validate/validate-time/time');
 const bouqTypeValidation = require('./assets/order/validate/validate-bouq-type/type');
+const pickPriceScene = require('./assets/order/validate/validate-price/price');
+// Регистрация сцен
 stage.register(dateValidation);
 stage.register(shippingValidation);
 stage.register(timeValidation);
 stage.register(bouqTypeValidation);
+stage.register(pickPriceScene);
 
 bot.use(session());
 bot.use(stage.middleware());
@@ -88,10 +91,8 @@ bot.hears(/💐 Заказать букет/, (ctx) => {
            order.displayInterface(ctx, "Выберите любой пункт в меню");
        } else {
            try {
-               console.log(ctx.update['callback_query'].data);
                ctx.scene.enter(ctx.update['callback_query'].data);
            } catch (error) {
-               // ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
                ctx.reply("☹️ Извините, эта кнопка уже не работает");
            }
 
@@ -104,7 +105,6 @@ bot.hears('Фотогалерея', (ctx) => {
     gallery.show(ctx);
 });
 
-
 bot.hears('Контакты', (ctx) => {
     Contacts.displayContactInfo(ctx);
     bot.action('Показать адрес', (ctx) => {
@@ -112,11 +112,9 @@ bot.hears('Контакты', (ctx) => {
     })
 });
 
-
 bot.hears('О нас', (ctx) => {
     about.displayInfo(ctx);
 });
-
 
 bot.hears('Моя корзина', (ctx) => {
     cart.show(ctx);
