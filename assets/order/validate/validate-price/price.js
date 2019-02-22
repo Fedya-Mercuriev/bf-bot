@@ -76,6 +76,5 @@ pickPriceScene.on('callback_query', (ctx) => {
         ctx.scene.leave('pickPriceScene');
     }
 });
-
 module.exports = bouquetPrice;
 module.exports = pickPriceScene;
