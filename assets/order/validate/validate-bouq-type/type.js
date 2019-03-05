@@ -109,9 +109,9 @@ function addCallbackDataToBouquets() {
     });
 }
 
+// Выдает пачку объектов (5шт) за раз
 function* goThroughBouquets(arr) {
   let sourceArray = arr.slice(),
-      currentIndex = 0,
       result = [];
 // @return (Array) массив содержит в себе объекты с информацией о букетах
     while(sourceArray.length !== 0) {
@@ -126,7 +126,6 @@ function* goThroughBouquets(arr) {
 
 async function displayBouquets(ctx) {
   let bouquets = prepareBouquetsForDisplay.next();
-            let currentMsg;
   // Если длинна исходного массива была больше 5, тогда в конце блока сообщений
   // спрашиваем загрузить ли еще букетов
   if (!bouquets.done) {
@@ -174,21 +173,27 @@ async function displayBouquets(ctx) {
               parse_mode: 'HTML',
               disable_notification: true,
               reply_markup: Markup.inlineKeyboard([
-                  Markup.callbackButton('Выбрать', bouquet.data)
+                  Markup.callbackButton('Выбрать этот букет', bouquet.data)
               ])
           })
               .catch(() => {
-                currentMsg = ctx.reply('🚫Упс! Что-то пошло не так. Нажмите кнопку ниже, чтобы загрузить букеты снова',
-                  Markup.inlineKeyboard([
-                      Markup.callbackButton('Загрузить букеты заново', 'reloadBouquets')
-                  ]).extra());
+                messagesToDelete.push(
+                    ctx.reply('🚫Упс! Что-то пошло не так. Нажмите кнопку ниже, чтобы загрузить букеты снова',
+                      Markup.inlineKeyboard([
+                          Markup.callbackButton('Загрузить букеты заново', 'reloadBouquets')
+                      ]).extra()
+                    )
+                );
               })
       )
     }
   }
+
+  // Запишем массив с сообщениями для удаления в свойство messages в объекте текущей сцены
+  ctx.scene.state.messages = messagesToDelete;
 }
 
-function requestBouqType(ctx) {
+function askToChooseBouquet(ctx) {
   ctx.reply(welcomeMsg).then(() => {
     displayBouquets(ctx);
   });
@@ -211,6 +216,17 @@ function setChosenCategory(ctx, chosenCategory) {
   });
 }
 
+async function cleanScene(ctx) {
+    ctx.scene.messages.forEach(({ message_id: id }) => {
+        try {
+            ctx.deleteMessage(id);
+        } catch(error) {
+            console.log(error);
+        }
+    })
+}
+
+// Начало блока с обработкой действий пользователя над ботом
 bouqtypeValidation.enter((ctx) => {
   let { bouquetType } = order.getOrderInfo;
     addCallbackDataToBouquets();
@@ -218,12 +234,12 @@ bouqtypeValidation.enter((ctx) => {
   if (bouquetType !== undefined) {
     confirmBouqTypeRewrite(ctx, bouquetType);
   } else {
-    requestBouqType(ctx);
+    askToChooseBouquet(ctx);
   }
 });
 
-bouqtypeValidation.on('message', (ctx) => {
-  console.log(ctx);
+bouqtypeValidation.leave((ctx) => {
+    cleanScene(ctx);
 });
 
 // bouqtypeValidation.on('callback_query', (ctx) => {
@@ -248,6 +264,7 @@ bouqtypeValidation.on('message', (ctx) => {
 //   }
 // });
 
+// Начало блока обработки кликов по конкретным callback-кнопкам
 bouqtypeValidation.action('reloadBouquets', () => {
   // Стираем сообщения и загружаем все заново
 });
@@ -284,22 +301,30 @@ bouqtypeValidation.action('chooseBouquet', (ctx) => {
 bouqtypeValidation.action('loadMoreBouquetes', (ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, 'Загружаю еще букеты');
     messagesToDelete.push(ctx.telegram.editMessageText(ctx.chat.id, ctx.update['callback_query'].message['message_id'], null, `Страница: ${pageNum}`))
-    // ctx.telegram.deleteMessage(ctx.chat.id, ctx.update['callback_query'].message['message_id']);
-  displayBouquets(ctx);
+    displayBouquets(ctx);
 });
+
+bouqtypeValidation.action('saveChosenBouquet', (ctx) => {
+    // Сохраняем выбранный букет и выходим из текущей сцены
+});
+
+bouqtypeValidation.action('chooseDifferentBouquet', (ctx) => {
+    //Удаляем сообщение с выбранным букетом
+});
+// Конец блока обработки кликов по конкретным callback-кнопкам
 
 bouqtypeValidation.on('message', (ctx) => {
   if (ctx.update.message.text.match(/меню заказа/gi)) {
     ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'bouqtypeValidation');
-    } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
+  } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
     ServiceOps.displayPhoneNumber(ctx);
-    } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
+  } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
     ctx.reply('Отменяю заказ!(нет)');
   } else {
     ctx.reply('Извините, в данном разделе я не воспринимаю текст.\nВыберите нужный вам тип букета, кликнув по одной из кнопок ниже'
-      // Markup.inlineKeyboard(validateType.makeAvailableTypes()).extra()
     );
   }
 });
+// Конец блока с обработкой действий пользователя над ботом
 
 module.exports = bouqtypeValidation;
