@@ -1,7 +1,6 @@
 'use strict';
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-// const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
@@ -10,7 +9,6 @@ const ServiceOps = require('../../../service-ops');
 const bouqtypeValidation = new Scene('bouqtypeValidation');
 
 // В availableBouquetes будет записываться массив с полученными через GET запрос объектами букетов
-
 const availableBouquets = [
     /*
       Структура:
@@ -373,6 +371,5 @@ bouqtypeValidation.on('message', (ctx) => {
         ctx.reply('Извините, в данном разделе я не воспринимаю текст.\nВыберите нужный вам тип букета, кликнув по одной из кнопок ниже');
     }
 });
-// Конец блока с обработкой действий пользователя над ботом
 
 module.exports = bouqtypeValidation;
