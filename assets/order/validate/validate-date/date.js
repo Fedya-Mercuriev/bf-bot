@@ -1,3 +1,5 @@
+'use strict';
+
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
 const session = require('telegraf/session');
@@ -5,9 +7,7 @@ const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
 const ValidateMonth = require('./month');
-// const OrderInfo = require('../../order-info');
 const ServiceOps = require('../../../service-ops');
-// const { Order } = require('../../order');
 const order = require('../../../../core');
 const Contacts = require("../../../main-page/contacts");
 const validateMonth = new ValidateMonth();
@@ -18,17 +18,11 @@ const russifyDate = require('./russify-date');
 const dateValidation = new Scene('dateValidation');
 
 // Пока спрячем это
-// const stage = new Stage();
-// stage.register(dateValidation);
 
 class ValidateDate {
     constructor() {
-        // this.validationCalled = false;
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate;
-        this.availableCloseDates = [
-            Markup.callbackButton('Сегодня', 'Сегодня'),
-            Markup.callbackButton('Завтра', 'Завтра')];
     }
 
     calculateDate(isToday) {
@@ -46,21 +40,6 @@ class ValidateDate {
         result.push(currentDate.getDate());
 
         return result;
-    }
-
-    _checkCloseAvailableDates() {
-        let now = new Date(),
-            workingHours;
-        // Подберем соответствующие дню недели часы работы
-        if (now.getDate() === 6 || now.getDate() === 0) {
-            workingHours = Contacts.workingHours.weekends;
-        } else {
-            workingHours = Contacts.workingHours.weekdays;
-        }
-        // Если в сегодняшний день киент делает заказ и время позднее (магаизн уже закрыт)
-        if (now.getHours() > workingHours.finish && this.availableCloseDates.length > 1) {
-            this.availableCloseDates.splice(0, 1);
-        }
     }
 
     _calculateDaysInMonth(month, year) {
@@ -126,7 +105,7 @@ class ValidateDate {
     set date(date) {
         let [year, month, day] = date;
         this.tempDate = Date.parse(new Date(year, month, day, 0, 0, 0).toString());
-        order.setOrderInfo = ['orderDate', this.tempDate];
+        order.orderInfo = ['orderDate', this.tempDate];
     }
 }
 
@@ -134,9 +113,8 @@ const validateDate = new ValidateDate();
 
 // Команды для сцены
 dateValidation.enter((ctx) => {
-    let { orderDate } = order.getOrderInfo,
+    let { orderDate } = order.orderInfo,
         date = russifyDate(new Date(orderDate));
-    validateDate._checkCloseAvailableDates();
 
     if (orderDate !== undefined) {
         validateDate.confirmDateOverwrite(ctx, date);
@@ -199,22 +177,9 @@ dateValidation.on('message', (ctx) => {
 });
 
 dateValidation.on('callback_query', (ctx) => {
-    // let orderInfo = order.getOrderInfo;
     ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
 
-    if (ctx.update['callback_query'].data === "Сегодня") {
-        validateDate.date = validateDate.calculateDate(true);
-        ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
-            ServiceOps.requestContinue(ctx, "введите другую дату");
-        });
-
-    } else if (ctx.update['callback_query'].data === "Завтра") {
-        validateDate.date = validateDate.calculateDate(false);
-        ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
-            ServiceOps.requestContinue(ctx, "введите другую дату");
-        });
-
-    } else if (ctx.update['callback_query'].data === 'overwriteData') {
+    if (ctx.update['callback_query'].data === 'overwriteData') {
         ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
 
         // Для обработки callback-кнопки "Оставить"
@@ -223,7 +188,7 @@ dateValidation.on('callback_query', (ctx) => {
 
     } else {
         // Обработать кнопку "Продолжить"
-        order.setOrderInfo = ['orderDate', validateDate.date];
+        order.orderInfo = ['orderDate', validateDate.date];
         ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
         order.displayInterface(ctx, `Выберите любой пункт в меню и следуйте инструкциям.
             \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`);
