@@ -22,12 +22,28 @@ class ValidateDate {
     constructor() {
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate;
+        this._messagesToDelete = [];
     }
 
     static russifyDate(date) {
         let months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
             usedDate = new Date(date);
         return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
+    }
+
+    _cleanScene(ctx) {
+        ctx.scene.messages = this._messagesToDelete;
+        ctx.scene.messages.forEach(({ message_id: id }) => {
+            try {
+                ctx.deleteMessage(id);
+            } catch(error) {
+                console.log(error);
+            }
+        });
+    }
+
+    _invokeFunction(funcName) {
+        this[funcName](arguments[1]);
     }
 
     _calculateDate(isToday) {
@@ -52,25 +68,24 @@ class ValidateDate {
     }
 
     requestDate(ctx) {
-        console.log("*** Запущена функция, запрашивающая ввод даты ***");
-        // Если время позднее для заказа на сегодня, убирает callback-кнопку "сегодня"
-
-        ctx.reply(`Выберите дату, на которую хотите заказать букет.
-        \nНапишите дату самостоятельно или выберите из предложенных ниже вариантов.
-        \nПримеры ввода дат:
-        \n✅ 14 февраля;
-        \n✅ 14.02;
-        \nЕсли вы ввели не ту дату – просто напишите новую`,
-            Markup.inlineKeyboard(this.availableCloseDates).extra());
+        ctx.reply(`Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую`)
+            .then(message => {
+                this._messagesToDelete.push(message);
+            });
     }
 
     confirmDateOverwrite(ctx, date) {
-        ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`).then(() => {
-            return ctx.reply("Перезаписать ее или оставить?", Markup.inlineKeyboard([
-                [Markup.callbackButton('Перезаписать', 'overwriteData')],
-                [Markup.callbackButton('Оставить', 'leaveData')]
-            ]).extra());
-        });
+        ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`)
+            .then(message => {
+                this._messagesToDelete.push(message);
+                return ctx.reply("Перезаписать ее или оставить?", Markup.inlineKeyboard([
+                    [Markup.callbackButton('Перезаписать', '_overwriteData')],
+                    [Markup.callbackButton('Оставить', '_leaveData')]
+                ]).extra());
+            })
+            .then(message => {
+                this._messagesToDelete.push(message);
+            });
     }
 
     _checkDate(dateArr) {
@@ -117,11 +132,12 @@ class ValidateDate {
 dateValidation.enter((ctx) => {
     const validateDate = new ValidateDate();
 
-    let { orderDate } = order.orderInfo,
-        date = ValidateDate.russifyDate(new Date(orderDate));
+    let { orderDate } = order.orderInfo;
+
+    orderDate = ValidateDate.russifyDate(new Date(orderDate));
 
     if (orderDate !== undefined) {
-        validateDate.confirmDateOverwrite(ctx, date);
+        validateDate.confirmDateOverwrite(ctx, orderDate);
     } else {
         validateDate.requestDate(ctx, orderDate);
     }
@@ -183,11 +199,11 @@ dateValidation.on('message', (ctx) => {
 dateValidation.on('callback_query', (ctx) => {
     ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
 
-    if (ctx.update['callback_query'].data === 'overwriteData') {
+    if (ctx.update['callback_query'].data === '_overwriteData') {
         ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
 
         // Для обработки callback-кнопки "Оставить"
-    } else if (ctx.update['callback_query'].data === 'leaveData') {
+    } else if (ctx.update['callback_query'].data === '_leaveData') {
         ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'dateValidation');
 
     } else {
