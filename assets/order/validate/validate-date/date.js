@@ -13,7 +13,6 @@ const Contacts = require("../../../main-page/contacts");
 const validateMonth = new ValidateMonth();
 
 const identifyDate = require('./identify-data');
-const russifyDate = require('./russify-date');
 
 const dateValidation = new Scene('dateValidation');
 
@@ -25,7 +24,13 @@ class ValidateDate {
         this.tempDate;
     }
 
-    calculateDate(isToday) {
+    static russifyDate(date) {
+        let months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
+            usedDate = new Date(date);
+        return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
+    }
+
+    _calculateDate(isToday) {
         let oneDay = 0,
             result = [],
             currentDate;
@@ -68,7 +73,7 @@ class ValidateDate {
         });
     }
 
-    checkDate(dateArr) {
+    _checkDate(dateArr) {
 
         return new Promise((resolve, reject) => {
             if (dateArr) {
@@ -90,7 +95,6 @@ class ValidateDate {
                     dateArr.push(scheduleYear);
                     result = dateArr;
                     resolve(result);
-                    return;
                 } else {
                     reject(new Error(`⛔️ В месяце, который вы ввели, нет числа ${day}!`));
                 }
@@ -109,12 +113,12 @@ class ValidateDate {
     }
 }
 
-const validateDate = new ValidateDate();
-
 // Команды для сцены
 dateValidation.enter((ctx) => {
+    const validateDate = new ValidateDate();
+
     let { orderDate } = order.orderInfo,
-        date = russifyDate(new Date(orderDate));
+        date = ValidateDate.russifyDate(new Date(orderDate));
 
     if (orderDate !== undefined) {
         validateDate.confirmDateOverwrite(ctx, date);
@@ -144,7 +148,7 @@ dateValidation.on('message', (ctx) => {
             })
             .then((result) => {
                 // Проверяет день
-                let validatedArr = validateDate.checkDate(result);
+                let validatedArr = validateDate._checkDate(result);
                 return validatedArr;
             }, (error) => {
                 throw error;
@@ -160,12 +164,12 @@ dateValidation.on('message', (ctx) => {
             })
             .catch((error) => {
                 if (error.message === "сегодня") {
-                    validateDate.date = validateDate.calculateDate(true);
+                    validateDate.date = validateDate._calculateDate(true);
                     ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
                         ServiceOps.requestContinue(ctx, "введите другую дату");
                     });
                 } else if (error.message === "завтра") {
-                    validateDate.date = validateDate.calculateDate(false);
+                    validateDate.date = validateDate._calculateDate(false);
                     ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
                         ServiceOps.requestContinue(ctx, "введите другую дату");
                     });
