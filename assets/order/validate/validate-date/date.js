@@ -12,11 +12,11 @@ const order = require('../../../../core');
 const Contacts = require("../../../main-page/contacts");
 const validateMonth = new ValidateMonth();
 
-const identifyDate = require('./identify-data');
+// const identifyDate = require('./identify-data');
 
 const dateValidation = new Scene('dateValidation');
 
-// Пока спрячем это
+let validateDate;
 
 class ValidateDate {
     constructor() {
@@ -74,7 +74,81 @@ class ValidateDate {
             });
     }
 
-    confirmDateOverwrite(ctx, date) {
+    _validateDate(ctx, userInput) {
+
+        // Начинаем с распознавания даты
+        this._identifyDate(userInput)
+            .then((result) => {
+                // Затем проверяет месяц
+                return validateMonth.validate(result);
+            },(error) => {
+                ctx.reply(error.message);
+            })
+            .then((result) => {
+                // Проверяет день
+                let validatedArr = validateDate._checkDate(result);
+                return validatedArr;
+            }, (error) => {
+                throw error;
+            })
+            .then((result) => {
+                // Записывает дату в объект даты
+                let date = result.reverse();
+
+                validateDate.date = date;
+                ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`).then(() => {
+                    ServiceOps.requestContinue(ctx, "введите другую дату");
+                });
+            })
+            .catch((error) => {
+                if (error.message === "сегодня") {
+                    validateDate.date = validateDate._calculateDate(true);
+                    ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`).then(() => {
+                        ServiceOps.requestContinue(ctx, "введите другую дату");
+                    });
+                } else if (error.message === "завтра") {
+                    validateDate.date = validateDate._calculateDate(false);
+                    ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`).then(() => {
+                        ServiceOps.requestContinue(ctx, "введите другую дату");
+                    });
+                } else {
+                    ctx.reply(error.message);
+                }
+            });
+    }
+
+    _identifyDate(string) {
+
+        return new Promise((resolve, reject) => {
+            let result;
+
+            if (string.match(/(\d+)[\s\/.,\-]?([а-яё]+)/i)) {
+                result = string.match(/(\d+)[\s\/.,\-]?([а-яё]+)/i);
+                result.splice(0, 1);
+                // Результат: ["день", "месяц"]
+                resolve(result);
+
+            } else if (string.match(/(\d+)[\s\/.,:\\-]+(\d+)/i)) {
+                result = string.match(/(\d+)[\s\/.,:\\-]+(\d+)/i);
+                // На данном этапе result выглядит так: ["26.06"]
+                result = result[0].split(/[\s\/.,:\\\-]/);
+                // Результат: (Array) ["день", "месяц"]
+                resolve(result);
+
+                // Иначе ищем было ли введено "сегодня" или "завтра"
+            } else if (string.match(/^сегодня$|^завтра$/i)) {
+                result = string.match(/^сегодня$|^завтра$/i);
+                result = result.toString().toLowerCase();
+                // Результат: (String) сегодня/завтра
+                resolve(result);
+
+            } else {
+                reject(new Error('⛔️ Пожалуйста, введите корректную дату!'));
+            }
+        });
+    }
+
+    confirmDateOverride(ctx, date) {
         ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`)
             .then(message => {
                 this._messagesToDelete.push(message);
@@ -130,14 +204,13 @@ class ValidateDate {
 
 // Команды для сцены
 dateValidation.enter((ctx) => {
-    const validateDate = new ValidateDate();
-
     let { orderDate } = order.orderInfo;
+    validateDate = new ValidateDate();
 
     orderDate = ValidateDate.russifyDate(new Date(orderDate));
 
     if (orderDate !== undefined) {
-        validateDate.confirmDateOverwrite(ctx, orderDate);
+        validateDate.confirmDateOverride(ctx, orderDate);
     } else {
         validateDate.requestDate(ctx, orderDate);
     }
@@ -151,48 +224,10 @@ dateValidation.on('message', (ctx) => {
         ServiceOps.displayPhoneNumber(ctx);
 
     } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-        ctx.reply("Отменяем заказ");
+        ctx.reply("Отменяем заказ (пока нет)");
 
     } else {
-        identifyDate(ctx.message.text)
-            .then((result) => {
-                // Проверяет месяц
-                let validatedArr = validateMonth.validate(result);
-                return validatedArr;
-            },(error) => {
-                ctx.reply(error.message);
-            })
-            .then((result) => {
-                // Проверяет день
-                let validatedArr = validateDate._checkDate(result);
-                return validatedArr;
-            }, (error) => {
-                throw error;
-            })
-            .then((result) => {
-                // Записывает дату в объект даты
-                let date = result.reverse();
-
-                validateDate.date = date;
-                ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
-                    ServiceOps.requestContinue(ctx, "введите другую дату");
-                });
-            })
-            .catch((error) => {
-                if (error.message === "сегодня") {
-                    validateDate.date = validateDate._calculateDate(true);
-                    ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
-                        ServiceOps.requestContinue(ctx, "введите другую дату");
-                    });
-                } else if (error.message === "завтра") {
-                    validateDate.date = validateDate._calculateDate(false);
-                    ctx.reply(`✅ Хорошо, букет будет готов к ${russifyDate(validateDate.date)}`).then(() => {
-                        ServiceOps.requestContinue(ctx, "введите другую дату");
-                    });
-                } else {
-                    ctx.reply(error.message);
-                }
-            });
+        validateDate._validateDate(ctx, ctx.message.text);
     }
 });
 
