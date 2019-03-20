@@ -33,21 +33,20 @@ function generateDatesArray(datesQuantity, min, max, dateCellLength = 2, hasNega
     return result;
 }
 
-
-test.each(dateStrings)
-('(Given string -> \'%s\') Identifies date if the string meets the requirements',
-    (dateString) => {
-        const expectedValue = dateString.match(/(\d{1,2})[\s\/.,\-]?([а-яё]+)/i);
-        expectedValue.splice(0, 1);
-        return identifyDate(dateString).then(result => {
-            console.log(result);
-            expect(new Set(result)).toEqual(new Set(expectedValue));
-        });
-    });
-
 describe('Testing literal date input', () => {
 
-    test(['222 фев', 'окт', '123 марта', '172 октября', '005 мая', '0110 мая', '122 апреля', '300 июня', '# декабря'])
+    test.each(dateStrings)
+    ('(Given string -> \'%s\') Identifies date if the string meets the requirements',
+        (dateString) => {
+            const expectedValue = dateString.match(/(\d{1,2})[\s\/.,\-]?([а-яё]+)/i);
+            expectedValue.splice(0, 1);
+            return identifyDate(dateString).then(result => {
+                console.log(result);
+                expect(new Set(result)).toEqual(new Set(expectedValue));
+            });
+        });
+
+    test.each(['222 фев', 'окт', '123 марта', '172 октября', '005 мая', '0110 мая', '122 апреля', '300 июня', '# декабря'])
     ('Given string -> \'%s\';\nThrows an error if string doesn\'t meet the requirements (number{1,2}(symbol)string)',
         (dateString) => {
             return identifyDate(dateString).catch(err => {
@@ -63,7 +62,7 @@ describe('Testing literal date input', () => {
             });
         });
 
-    test.only.each(['22фев', '09окт', '1мая', '72января', '5октября', '0март', '12янв', '30июня', '05августа'])
+    test.each(['22фев', '09окт', '1мая', '72января', '5октября', '0март', '12янв', '30июня', '05августа'])
     ('Throws an error if no space or symbol between the two parts of an expected date is provided',
         (date) => {
             return identifyDate(date).catch(err => {
@@ -71,64 +70,51 @@ describe('Testing literal date input', () => {
             });
         });
 
-    test('Must identify date of traditional format (RU)', () => {
-        const dates = [
-            '21 ноября да', 'хочу 1 декабря и только', 'хочу 1 января угу', 'хочу 21 марта хы', 'хочу 8 апреля', 'не хочу 3 сентября', 'хочу еще и  12 июля'
-        ];
-
-        dates.forEach((item) => {
-            let result = identifyDate(item);
-            let expectedResult = item.split(' ');
-            expectedResult.splice(0, 1);
-            return expect(result).resolves.toEqual(expectedResult);
+    test.each(['21 ноября да', 'хочу 1 декабря и только', '#. 1 января угу', 'хочу 21 марта хы', 'хочу 8 апреля', 'не хочу 3 сентября', 'хочу еще и  12 июля'])
+    ('(Given string -> (\'%s\')) Must identify date of traditional format (RU)', (date) => {
+        let expectedResult = date.split(' ');
+        expectedResult.splice(0, 1);
+        return identifyDate(date).then(result => {
+            console.log(result);
+            expect(Array.isArray(result)).toBeTruthy();
         });
     });
 });
 
 describe('Testing numeric date input', () => {
 
-        test('Throws an error if day or month have more than 2 numbers', () => {
-            const datesArray = generateDatesArray(20, 1, 999);
-
-            datesArray.forEach(date => {
-
-                const dateVals = date.split(',');
-                if (dateVals[0].length > 2 || dateVals[1].length > 2) {
-                    return identifyDate(date).catch(err => {
-                        expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
-                    });
-                } else {
-                    return identifyDate(date).then(result => {
-                        const expectedVal = date.split(',');
-                        expect(result).toEqual(expectedVal);
-                 });
-                }
-            });
+        test.each(generateDatesArray(20, 1, 999))
+        ('(Given string -> (\'%s\'))Throws an error if day or month have more than 2 numbers', (date) => {
+            const dateVals = date.split(',');
+            if (dateVals[0].length > 2 || dateVals[1].length > 2) {
+                return identifyDate(date).catch(err => {
+                    expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                });
+            } else {
+                return identifyDate(date).then(result => {
+                    const expectedVal = date.split(',');
+                    expect(result).toEqual(expectedVal);
+                });
+            }
         });
 
-        test('Throws an error if no space provided between digits', () => {
-            const datesArray = generateDatesArray(20, 1, 99, 2);
-
-            datesArray.forEach(date => {
+        test.each(generateDatesArray(20, 1, 99, 2))
+        ('Given string -> (\'%s\') Throws an error if no space provided between digits',
+            (date) => {
                 const givenString = date.replace(',', '');
 
                 return identifyDate(givenString).catch(err => {
                     expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
                 });
-            });
         });
 
-        test('Must identify numeric date', () => {
-            const dates = [
-                '21.01', '01.12', '02/02', '10,10', '1-1', '3 9', '12.12'
-            ];
-
-            dates.forEach(item => {
+        test.each(['21.01', '01.12', '02/02', '10,10', '1-1', '3 9', '12.12'])
+        ('Given string -> (\'%s\') Must identify numeric date',
+            (item) => {
                 identifyDate(item).then(result => {
                     let desiredResult = item.split(/[\s\/.,:\\\-]/);
                     return expect(result).toEqual(desiredResult);
                 });
-            });
         });
     });
 
