@@ -122,55 +122,56 @@ describe('Month validation', () => {
 
     describe('Testing literal date input', () => {
 
-        test('Throws an error If no month was found in string (literal)', () => {
-            const dateArray = ['22 так', '05 лушдц', '3 брюмера', '5 комара', '17 июпя', '0 sept'];
-
-            dateArray.forEach(dateString => {
+        test.each(['22 так', '05 лушдц', '3 брюмера', '5 комара', '17 июпя', '0 sept'])
+        ('Given string -> (\'%s\') Throws an error If no month was found in string (literal)',
+            (dateString) => {
                 return identifyDate(dateString).then(result => {
                     return validateLiteralMonth(result);
                 }).catch(err => {
                     expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
                 });
-            });
         });
 
-        test('Return numeric js-month (original month - 1)', () => {
-            const dateArray = [{
-                string: '22 янв',
-                num: 0
-            }, {
-                string: '22 марта',
-                num: 2
-            }, {
-                string: '22 июля',
-                num: 6
-            }, {
-                string: '22 декаб',
-                num: 11
-            }, {
-                string: '22 июля',
-                num: 6
-            },{
-                string: '22 феврал',
-                num: 1
-            }, {
-                string: '22 июн',
-                num: 5
-            }, {
-                string: '22 май',
-                num: 4
-            }, {
-                string: '88 май',
-                num: 4
-            }];
+        test.each([{
+            string: '22 март',
+            num: 2
+        }, {
+            string: '22 марта',
+            num: 2
+        }, {
+            string: '22 июля',
+            num: 6
+        }, {
+            string: '22 декаб',
+            num: 11
+        }, {
+            string: '22 июля',
+            num: 6
+        },{
+            string: '22 сент',
+            num: 8
+        }, {
+            string: '22 июн',
+            num: 5
+        }, {
+            string: '22 май',
+            num: 4
+        }, {
+            string: '1 янв',
+            num: 0
+        }, {
+            string: '88 май',
+            num: 4
+        }])('Given string -> (\'%o\') Return numeric js-month',
+            (dateObj) => {
+            const { string, num } = dateObj;
 
-            dateArray.forEach(dateObj => {
-                return identifyDate(dateObj.string).then(result => {
+                return identifyDate(string).then(result => {
+                    const expectedVal = num;
                     return validateLiteralMonth(result).then(validateMonthResult => {
-                        expect(validateMonthResult[1]).toEqual(dateObj.num);
+                        expect(validateMonthResult[1]).toEqual(expectedVal);
                     });
                 });
-            });
         });
 
         test('Month in the returned array is a number', () => {
