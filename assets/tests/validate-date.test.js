@@ -40,23 +40,23 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
 }
 
-function generateDatesArray(datesQuantity, min, max, dateCellLength = 2, hasNegativeValues = false) {
+function generateDatesArray(datesQuantity, month, day = null, hasNegativeValues = false) {
     // Генерируем дату в формате ["день", "месяц"]
     let result = [];
+    let { minDay, maxDay } = day;
+    let { minMonth, maxMonth } = month;
 
-    if (hasNegativeValues) {
-        min = -10;
-    }
     for (let i = 0; i < datesQuantity; i++) {
         let date = [];
-        if (dateCellLength > 1) {
-            for (let j = 0; j < dateCellLength; j++) {
-                date.push(getRandomInt(min, max));
-            }
-        } else {
-            date.push(getRandomInt(min, max));
-        }
+        minDay = (hasNegativeValues) ? -10 : minDay;
+        minMonth = (hasNegativeValues) ? -10 : minMonth;
 
+        if (day !== null) {
+            date.push(getRandomInt(minDay, maxDay));
+            date.push(getRandomInt(minMonth, maxMonth));
+        } else {
+            date.push(getRandomInt(minMonth, maxMonth));
+        }
         result.push(date.toString());
     }
     return result;
