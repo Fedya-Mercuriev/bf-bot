@@ -1,3 +1,4 @@
+'use strict';
 const validateDay = require('../order/validate/validate-date/chunks/validate-day');
 const validateLiteralMonth = require('../order/validate/validate-date/chunks/validate-literal-month');
 const validateNumericMonth = require('../order/validate/validate-date/chunks/validate-numeric-month');
@@ -40,18 +41,15 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
 }
 
-function generateDatesArray(datesQuantity, month, day = null, hasNegativeValues = false) {
+function generateDatesArray(dateSettings) {
     // Генерируем дату в формате ["день", "месяц"]
     let result = [];
-    let { minDay, maxDay } = day;
-    let { minMonth, maxMonth } = month;
+    let { minDay, maxDay, minMonth, maxMonth, datesQuantity } = dateSettings;
 
     for (let i = 0; i < datesQuantity; i++) {
         let date = [];
-        minDay = (hasNegativeValues) ? -10 : minDay;
-        minMonth = (hasNegativeValues) ? -10 : minMonth;
 
-        if (day !== null) {
+        if (minDay !== null && maxDay !== null) {
             date.push(getRandomInt(minDay, maxDay));
             date.push(getRandomInt(minMonth, maxMonth));
         } else {
@@ -269,6 +267,27 @@ describe('Month validation', () => {
     });
 });
 
+describe('Testing day validation', () => {
+    let dateSettings = {datesQuantity: 20, hasNegativeValues: false, minDay: 1, maxDay: 31, minMonth: 3, maxMonth: 11};
+
+    test.each(generateDatesArray(dateSettings))
+    ('(Given date -> %p) Throws an error if input month = current, but day is < current day',
+        (dateString) => {
+            return identifyDate(dateString)
+                .then(dateArray => {
+                    return validateNumericMonth(dateArray);
+                })
+                .then(async arrWithValidatedMonth => {
+                    const currentDay = new Date().getDate();
+                    const validationResult = await validateDay(arrWithValidatedMonth);
+                    if (arrWithValidatedMonth[1] === new Date().getMonth() && +arrWithValidatedMonth[0] < currentDay) {
+                        expect(validationResult).toMatch('⛔️ Дата, которую вы ввели уже прошла');
+                    } else {
+                        expect(validationResult).toEqual(arrWithValidatedMonth);
+                    }
+                });
+        });
+});
 // test('If date has expired - throws an error', () => {
 //     const currentMonth = new Date().getMonth();
 //
