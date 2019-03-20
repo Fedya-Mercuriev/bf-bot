@@ -5,6 +5,35 @@ const identifyDate = require('../order/validate/validate-date/chunks/identify-da
 
 const dateStrings = ['22 фев', '09 окт', '1.февр', '17-декабря', '05,мая', '01/нояб', '12,дека', '30 июня', '05.июль'];
 
+const dateArray = [{
+    string: '22 янв',
+    num: 0
+}, {
+    string: '22 марта',
+    num: 2
+}, {
+    string: '22 июля',
+    num: 6
+}, {
+    string: '22 декаб',
+    num: 11
+}, {
+    string: '22 июля',
+    num: 6
+},{
+    string: '22 феврал',
+    num: 1
+}, {
+    string: '22 июн',
+    num: 5
+}, {
+    string: '22 май',
+    num: 4
+}, {
+    string: '88 май',
+    num: 4
+}];
+
 function getRandomInt(min, max) {
     const minVal = Math.ceil(min),
         maxVal = Math.floor(max);
@@ -197,49 +226,21 @@ describe('Month validation', () => {
         });
     });
 
-    describe('Testing numeric month validation', () => {
+    describe.only('Testing numeric month validation', () => {
 
-        const dateArray = [{
-            string: '22 янв',
-            num: 0
-        }, {
-            string: '22 марта',
-            num: 2
-        }, {
-            string: '22 июля',
-            num: 6
-        }, {
-            string: '22 декаб',
-            num: 11
-        }, {
-            string: '22 июля',
-            num: 6
-        },{
-            string: '22 феврал',
-            num: 1
-        }, {
-            string: '22 июн',
-            num: 5
-        }, {
-            string: '22 май',
-            num: 4
-        }, {
-            string: '88 май',
-            num: 4
-        }];
-
-        test('Return numeric js-month (original month - 1)', () => {
-            dateArray.forEach(dateObj => {
-                return identifyDate(dateObj.string).then(result => {
+        test.each(dateArray)
+        ('Given date object -> (%o) Return numeric js-month',
+            (dateObj) => {
+            const { string, num } = dateObj;
+                return identifyDate(string).then(result => {
                     return validateNumericMonth(result).then(validateMonthResult => {
-                        expect(validateMonthResult[1]).toEqual(dateObj.num);
+                        expect(validateMonthResult[1]).toEqual(num);
                     });
                 });
-            });
-        });
+        }, 10000);
 
         test.each(['12.01', '3 02', '1.2', '2/01', '2-1', '15,02'])(
-            '(Given string -> \'%s\')Throws error If input month is less than current month',
+            '(Given string -> \'%s\') Throws error If input month is less than current month',
             (dateString) => {
                 return identifyDate(dateString).then(dateArr => {
                     return validateNumericMonth(dateArr)
