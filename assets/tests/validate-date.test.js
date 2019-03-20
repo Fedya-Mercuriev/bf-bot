@@ -226,33 +226,37 @@ describe('Month validation', () => {
         });
     });
 
-    describe.only('Testing numeric month validation', () => {
+    describe('Testing numeric month validation', () => {
 
+        // Doesn't work!!!
         test.each(dateArray)
-        ('Given date object -> (%o) Return numeric js-month',
+        ('(Given date object -> %o) Return numeric js-month',
             (dateObj) => {
             const { string, num } = dateObj;
-                return identifyDate(string).then(result => {
-                    return validateNumericMonth(result).then(validateMonthResult => {
+                return identifyDate(string)
+                    .then(result => {
+                        return validateNumericMonth(result);
+                    })
+                    .then(validateMonthResult => {
                         expect(validateMonthResult[1]).toEqual(num);
                     });
-                });
-        }, 10000);
+        });
 
         test.each(['12.01', '3 02', '1.2', '2/01', '2-1', '15,02'])(
             '(Given string -> \'%s\') Throws error If input month is less than current month',
             (dateString) => {
-                return identifyDate(dateString).then(dateArr => {
-                    return validateNumericMonth(dateArr)
-                        .catch(err => {
-                            expect(err.message).toMatch('⛔ Увы, нельзя заказывать букет на дату, которая уже прошла!');
-                        });
-                });
+                return identifyDate(dateString)
+                    .then(dateArr => {
+                        return validateNumericMonth(dateArr);
+                    })
+                    .catch(err => {
+                        expect(err.message).toMatch('⛔ Увы, нельзя заказывать букет на дату, которая уже прошла!');
+                    });
             }
         );
 
         test.each(generateDatesArray(20, 3, 12))(
-            '(given arguments [%s]) – month in the returned must be a number',
+            '(Given arguments [%s]) – month in the returned array must be a number',
             (dateStr) => {
                 return identifyDate(dateStr).then(dateArray => {
                     return validateNumericMonth(dateArray)
