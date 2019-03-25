@@ -9,22 +9,24 @@ function validateDay(dateArr) {
         if (dateArr) {
             // Преобразуем к JS-дате, а потом возьмем из массива имен месяцев то, что нужно
             let scheduleYear = new Date().getFullYear(),
-                currentMonth = new Date().getMonth(),
-                today = new Date().getDate(),
+                currentDay = new Date().getDate(),
                 [ day, inputMonth ] = dateArr,
                 result;
+            day = +day;
 
-            if (inputMonth < currentMonth) {
-                reject(new Error('⛔️ Дата, которую вы ввели уже прошла'));
-            }
+            // if (inputMonth < currentMonth) {
+            //     reject(new Error('⛔️ Дата, которую вы ввели уже прошла'));
+            // }
             // else if (month === currentMonth && day < today) {
             //     scheduleYear++;
             // }
 
             if (day !== 0 && day <= calculateDaysInMonth(inputMonth, scheduleYear)) {
-                // dateArr.push(scheduleYear);
                 result = dateArr;
                 resolve(result);
+            } else if (day < currentDay) {
+                console.log(`Полученный массив: ${dateArr}`);
+                reject(new Error('⛔️ Дата, которую вы ввели уже прошла!'));
             } else {
                 reject(new Error(`⛔️ В месяце, который вы ввели, нет числа ${day}!`));
             }
