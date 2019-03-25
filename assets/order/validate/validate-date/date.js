@@ -6,11 +6,12 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
-const ValidateMonth = require('./month');
 const ServiceOps = require('../../../service-ops');
 const order = require('../../../../core');
 const Contacts = require("../../../main-page/contacts");
-const validateMonth = new ValidateMonth();
+const identifyDate = require('./chunks/identify-date');
+const validateMonth = require('./validate-month');
+const validateDay = require('./chunks/validate-day');
 
 // const identifyDate = require('./identify-data');
 
@@ -21,8 +22,12 @@ let validateDate;
 class ValidateDate {
     constructor() {
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-        this.tempDate;
+        this.tempDate = null;
         this._messagesToDelete = [];
+        this._saveDataMsg = null;
+        this._validateMonth = validateMonth;
+        this._identifyDate = identifyDate;
+        this._valiadateDay = validateDay;
     }
 
     static russifyDate(date) {
@@ -36,7 +41,7 @@ class ValidateDate {
         ctx.scene.messages.forEach(({ message_id: id }) => {
             try {
                 ctx.deleteMessage(id);
-            } catch(error) {
+            } catch (error) {
                 console.log(error);
             }
         });
@@ -80,25 +85,30 @@ class ValidateDate {
         this._identifyDate(userInput)
             .then((result) => {
                 // Затем проверяет месяц
-                return validateMonth.validate(result);
-            },(error) => {
-                ctx.reply(error.message);
+                return this._validateMonth(result);
+            }, (error) => {
+                ctx.reply(error.message).then(message => {
+                    this._messagesToDelete.push(message);
+                });
             })
             .then((result) => {
                 // Проверяет день
-                let validatedArr = validateDate._checkDate(result);
-                return validatedArr;
+                return this._valiadateDay(result);
             }, (error) => {
                 throw error;
             })
-            .then((result) => {
-                // Записывает дату в объект даты
-                let date = result.reverse();
+            .then((resultDate) => {
+                // Создает объект даты с установленными проверенными месяцем и днем
+                this._setTempDate(resultDate);
 
-                validateDate.date = date;
-                ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`).then(() => {
-                    ServiceOps.requestContinue(ctx, "введите другую дату");
-                });
+                ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
+                    .then((messages) => {
+                        this._messagesToDelete.push(messages);
+                        return ServiceOps.requestContinue(ctx, "введите другую дату");
+                    })
+                    .then(message => {
+                        this._saveDataMsg = message;
+                    });
             })
             .catch((error) => {
                 if (error.message === "сегодня") {
@@ -117,35 +127,12 @@ class ValidateDate {
             });
     }
 
-    _identifyDate(string) {
-
-        return new Promise((resolve, reject) => {
-            let result;
-
-            if (string.match(/(\d+)[\s\/.,\-]?([а-яё]+)/i)) {
-                result = string.match(/(\d+)[\s\/.,\-]?([а-яё]+)/i);
-                result.splice(0, 1);
-                // Результат: ["день", "месяц"]
-                resolve(result);
-
-            } else if (string.match(/(\d+)[\s\/.,:\\-]+(\d+)/i)) {
-                result = string.match(/(\d+)[\s\/.,:\\-]+(\d+)/i);
-                // На данном этапе result выглядит так: ["26.06"]
-                result = result[0].split(/[\s\/.,:\\\-]/);
-                // Результат: (Array) ["день", "месяц"]
-                resolve(result);
-
-                // Иначе ищем было ли введено "сегодня" или "завтра"
-            } else if (string.match(/^сегодня$|^завтра$/i)) {
-                result = string.match(/^сегодня$|^завтра$/i);
-                result = result.toString().toLowerCase();
-                // Результат: (String) сегодня/завтра
-                resolve(result);
-
-            } else {
-                reject(new Error('⛔️ Пожалуйста, введите корректную дату!'));
-            }
-        });
+    _setTempDate(date) {
+        let result = new Date();
+        const [day, month] = date;
+        result.setDate(day);
+        result.setMonth(month);
+        this.tempDate = Date.parse(result);
     }
 
     confirmDateOverride(ctx, date) {
@@ -162,44 +149,44 @@ class ValidateDate {
             });
     }
 
-    _checkDate(dateArr) {
+    // _valiadateDay(dateArr) {
 
-        return new Promise((resolve, reject) => {
-            if (dateArr) {
-                // Преобразуем к JS-дате, а потом возьмем из массива имен месяцев то, что нужно
-                let scheduleYear = new Date().getFullYear(),
-                    currentMonth = new Date().getMonth(),
-                    currentYear = new Date().getFullYear(),
-                    today = new Date().getDate(),
-                    [ day, month ] = dateArr,
-                    result;
+    //     return new Promise((resolve, reject) => {
+    //         if (dateArr) {
+    //             // Преобразуем к JS-дате, а потом возьмем из массива имен месяцев то, что нужно
+    //             let scheduleYear = new Date().getFullYear(),
+    //                 currentMonth = new Date().getMonth(),
+    //                 today = new Date().getDate(),
+    //                 [day, inputMonth] = dateArr,
+    //                 result;
 
-                if (month < currentMonth) {
-                    scheduleYear++;
-                } else if (month === currentMonth && day < today) {
-                    scheduleYear++;
-                }
+    //             if (inputMonth < currentMonth) {
+    //                 reject(new Error('⛔️ Дата, которую вы ввели уже прошла'));
+    //             }
+    //             // else if (month === currentMonth && day < today) {
+    //             //     scheduleYear++;
+    //             // }
 
-                if (day !== 0 && day <= this._calculateDaysInMonth(month, scheduleYear)) {
-                    dateArr.push(scheduleYear);
-                    result = dateArr;
-                    resolve(result);
-                } else {
-                    reject(new Error(`⛔️ В месяце, который вы ввели, нет числа ${day}!`));
-                }
-            }
-        });
-    }
+    //             if (day !== 0 && day <= this._calculateDaysInMonth(inputMonth, scheduleYear)) {
+    //                 // dateArr.push(scheduleYear);
+    //                 result = dateArr;
+    //                 resolve(result);
+    //             } else {
+    //                 reject(new Error(`⛔️ В месяце, который вы ввели, нет числа ${day}!`));
+    //             }
+    //         }
+    //     });
+    // }
 
     get date() {
         return this.tempDate;
     }
 
-    set date(date) {
-        let [year, month, day] = date;
-        this.tempDate = Date.parse(new Date(year, month, day, 0, 0, 0).toString());
-        order.orderInfo = ['orderDate', this.tempDate];
-    }
+    // set date(date) {
+    //     let [year, month, day] = date;
+    //     this.tempDate = Date.parse(new Date(year, month, day, 0, 0, 0).toString());
+    //     order.orderInfo = ['orderDate', this.tempDate];
+    // }
 }
 
 // Команды для сцены
@@ -207,9 +194,8 @@ dateValidation.enter((ctx) => {
     let { orderDate } = order.orderInfo;
     validateDate = new ValidateDate();
 
-    orderDate = ValidateDate.russifyDate(new Date(orderDate));
-
     if (orderDate !== undefined) {
+        orderDate = ValidateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
     } else {
         validateDate.requestDate(ctx, orderDate);
