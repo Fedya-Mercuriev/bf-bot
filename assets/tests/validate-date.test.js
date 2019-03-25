@@ -21,7 +21,7 @@ const dateArray = [{
 }, {
     string: '22 июля',
     num: 6
-},{
+}, {
     string: '22 феврал',
     num: 1
 }, {
@@ -60,72 +60,77 @@ function generateDatesArray(dateSettings) {
     return result;
 }
 
+function calculateDaysInMonth(month, year) {
+    return new Date(year, month + 1, 0).getDate();
+}
+
 describe('Testing literal date input', () => {
 
     test.each(dateStrings)
-    ('(Given string -> \'%s\') Identifies date if the string meets the requirements',
-        (dateString) => {
-            const expectedValue = dateString.match(/(\d{1,2})[\s\/.,\-]?([а-яё]+)/i);
-            expectedValue.splice(0, 1);
-            return identifyDate(dateString).then(result => {
-                console.log(result);
-                expect(new Set(result)).toEqual(new Set(expectedValue));
+        ('(Given string -> \'%s\') Identifies date if the string meets the requirements',
+            (dateString) => {
+                const expectedValue = dateString.match(/(\d{1,2})[\s\/.,\-]?([а-яё]+)/i);
+                expectedValue.splice(0, 1);
+                return identifyDate(dateString).then(result => {
+                    console.log(result);
+                    expect(new Set(result)).toEqual(new Set(expectedValue));
+                });
             });
-        });
 
     test.each(['222 фев', 'окт', '123 марта', '172 октября', '005 мая', '0110 мая', '122 апреля', '300 июня', '# декабря'])
-    ('Given string -> \'%s\';\nThrows an error if string doesn\'t meet the requirements (number{1,2}(symbol)string)',
-        (dateString) => {
-            return identifyDate(dateString).catch(err => {
-                expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+        ('Given string -> \'%s\';\nThrows an error if string doesn\'t meet the requirements (number{1,2}(symbol)string)',
+            (dateString) => {
+                return identifyDate(dateString).catch(err => {
+                    expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                });
             });
-        });
 
     test.each(generateDatesArray(20, 1, 31, 1))
-    ('Given string -> (\'%s\'); Throws an error if no string is provided after digits',
-        (dateString) => {
-            return identifyDate(dateString).catch(err => {
-                expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+        ('Given string -> (\'%s\'); Throws an error if no string is provided after digits',
+            (dateString) => {
+                return identifyDate(dateString).catch(err => {
+                    expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                });
             });
-        });
 
     test.each(['22фев', '09окт', '1мая', '72января', '5октября', '0март', '12янв', '30июня', '05августа'])
-    ('Throws an error if no space or symbol between the two parts of an expected date is provided',
-        (date) => {
-            return identifyDate(date).catch(err => {
-                expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+        ('Throws an error if no space or symbol between the two parts of an expected date is provided',
+            (date) => {
+                return identifyDate(date).catch(err => {
+                    expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                });
             });
-        });
 
     test.each(['21 ноября да', 'хочу 1 декабря и только', '#. 1 января угу', 'хочу 21 марта хы', 'хочу 8 апреля', 'не хочу 3 сентября', 'хочу еще и  12 июля'])
-    ('(Given string -> (\'%s\')) Must identify date of traditional format (RU)', (date) => {
-        let expectedResult = date.split(' ');
-        expectedResult.splice(0, 1);
-        return identifyDate(date).then(result => {
-            console.log(result);
-            expect(Array.isArray(result)).toBeTruthy();
+        ('(Given string -> (\'%s\')) Must identify date of traditional format (RU)', (date) => {
+            let expectedResult = date.split(' ');
+            expectedResult.splice(0, 1);
+            return identifyDate(date).then(result => {
+                console.log(result);
+                expect(Array.isArray(result)).toBeTruthy();
+            });
         });
-    });
 });
 
 describe('Testing numeric date input', () => {
 
-        test.each(generateDatesArray(20, 1, 999))
-        ('(Given string -> (\'%s\'))Throws an error if day or month have more than 2 numbers', (date) => {
-            const dateVals = date.split(',');
-            if (dateVals[0].length > 2 || dateVals[1].length > 2) {
-                return identifyDate(date).catch(err => {
-                    expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
-                });
-            } else {
-                return identifyDate(date).then(result => {
-                    const expectedVal = date.split(',');
-                    expect(result).toEqual(expectedVal);
-                });
-            }
-        });
+    test.each(['05, 4', '29.6', '1/2', '15-11'])
+        ('(Given string -> (\'%s\')) Throws an error if day or month have more than 2 numbers',
+            (date) => {
+                const dateVals = date.split(',');
+                if (dateVals[0].length > 2 || dateVals[1].length > 2) {
+                    return identifyDate(date).catch(err => {
+                        expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                    });
+                } else {
+                    return identifyDate(date).then(result => {
+                        const expectedVal = date.split(',');
+                        expect(result).toEqual(expectedVal);
+                    });
+                }
+            });
 
-        test.each(generateDatesArray(20, 1, 99, 2))
+    test.each(generateDatesArray(20, 1, 99, 2))
         ('Given string -> (\'%s\') Throws an error if no space provided between digits',
             (date) => {
                 const givenString = date.replace(',', '');
@@ -133,31 +138,31 @@ describe('Testing numeric date input', () => {
                 return identifyDate(givenString).catch(err => {
                     expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
                 });
-        });
+            });
 
-        test.each(['21.01', '01.12', '02/02', '10,10', '1-1', '3 9', '12.12'])
+    test.each(['21.01', '01.12', '02/02', '10,10', '1-1', '3 9', '12.12'])
         ('Given string -> (\'%s\') Must identify numeric date',
             (item) => {
                 identifyDate(item).then(result => {
                     let desiredResult = item.split(/[\s\/.,:\\\-]/);
                     return expect(result).toEqual(desiredResult);
                 });
-        });
-    });
+            });
+});
 
 describe('Month validation', () => {
 
     describe('Testing literal date input', () => {
 
         test.each(['22 так', '05 лушдц', '3 брюмера', '5 комара', '17 июпя', '0 sept'])
-        ('Given string -> (\'%s\') Throws an error If no month was found in string (literal)',
-            (dateString) => {
-                return identifyDate(dateString).then(result => {
-                    return validateLiteralMonth(result);
-                }).catch(err => {
-                    expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+            ('Given string -> (\'%s\') Throws an error If no month was found in string (literal)',
+                (dateString) => {
+                    return identifyDate(dateString).then(result => {
+                        return validateLiteralMonth(result);
+                    }).catch(err => {
+                        expect(err.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                    });
                 });
-        });
 
         test.each([{
             string: '22 март',
@@ -174,7 +179,7 @@ describe('Month validation', () => {
         }, {
             string: '22 июля',
             num: 6
-        },{
+        }, {
             string: '22 сент',
             num: 8
         }, {
@@ -191,7 +196,7 @@ describe('Month validation', () => {
             num: 4
         }])('Given string -> (\'%o\') Return numeric js-month',
             (dateObj) => {
-            const { string, num } = dateObj;
+                const { string, num } = dateObj;
 
                 return identifyDate(string).then(result => {
                     const expectedVal = num;
@@ -199,7 +204,7 @@ describe('Month validation', () => {
                         expect(validateMonthResult[1]).toEqual(expectedVal);
                     });
                 });
-        });
+            });
 
         test('Month in the returned array is a number', () => {
             const dateArray = ['22 янв', '22 марта', '22 июля', '22 декаб', '22 июля', '22 феврал', '22 июн', '22 май', '88 май'];
@@ -226,85 +231,100 @@ describe('Month validation', () => {
 
     describe('Testing numeric month validation', () => {
 
-        // Doesn't work!!!
-        test.each(dateArray)
-        ('(Given date object -> %o) Return numeric js-month',
-            (dateObj) => {
-            const { string, num } = dateObj;
-                return identifyDate(string)
-                    .then(result => {
-                        return validateNumericMonth(result);
-                    })
-                    .then(validateMonthResult => {
-                        expect(validateMonthResult[1]).toEqual(num);
-                    });
-        });
+        test.only.each([{
+                string: '22.04',
+                num: 3
+            }, {
+                string: '06.11',
+                num: 10
+            }, {
+                string: '06.04',
+                num: 3
+            }])
+            ('(Given date object -> %o) Returns numeric js-month',
+                (dateObj) => {
+                    const dateArr = dateObj.string.split('.');
 
-        test.each(['12.01', '3 02', '1.2', '2/01', '2-1', '15,02'])(
-            '(Given string -> \'%s\') Throws error If input month is less than current month',
-            (dateString) => {
-                return identifyDate(dateString)
-                    .then(dateArr => {
-                        return validateNumericMonth(dateArr);
-                    })
+                    return validateNumericMonth(dateArr)
+                        .then(validateMonthResult => {
+                            expect(validateMonthResult[1]).toEqual(dateObj.num);
+                        });
+
+                }
+            );
+
+        test.only.each([
+            '12, 01',
+            '3, 02',
+            '1, 2',
+            '2, 01',
+            '2, 1',
+            '15, 02'
+        ])(
+            '(Given array -> \'[%s, %s]\') Throws error If input month is less than current month',
+            (dateArr) => {
+                return validateNumericMonth(dateArr)
                     .catch(err => {
                         expect(err.message).toMatch('⛔ Увы, нельзя заказывать букет на дату, которая уже прошла!');
                     });
             }
         );
 
-        test.each(generateDatesArray(20, 3, 12))(
-            '(Given arguments [%s]) – month in the returned array must be a number',
-            (dateStr) => {
-                return identifyDate(dateStr).then(dateArray => {
+        test.each([
+                '21,04',
+                '01, 12',
+                '02, 03',
+                '10, 10',
+                '1, 8',
+                '3, 9',
+                '12, 12'
+            ])
+            ('(Given arguments -> [%s]) – month in the returned array must be a number',
+                (dateString) => {
+                    const dateArray = dateString.split(',');
                     return validateNumericMonth(dateArray)
                         .then(arrWithValidatedMonth => {
                             expect(typeof arrWithValidatedMonth[1] === 'number').toBeTruthy();
                         });
-                });
-            }
-        );
+                }
+            );
     });
 });
 
 describe('Testing day validation', () => {
-    let dateSettings = {datesQuantity: 20, hasNegativeValues: false, minDay: 1, maxDay: 31, minMonth: 3, maxMonth: 11};
 
-    test.each(generateDatesArray(dateSettings))
-    ('(Given date -> %p) Throws an error if input month = current, but day is < current day',
-        (dateString) => {
-            return identifyDate(dateString)
-                .then(dateArray => {
-                    return validateNumericMonth(dateArray);
-                })
-                .then(async arrWithValidatedMonth => {
-                    const currentDay = new Date().getDate();
-                    const validationResult = await validateDay(arrWithValidatedMonth);
-                    if (arrWithValidatedMonth[1] === new Date().getMonth() && +arrWithValidatedMonth[0] < currentDay) {
-                        expect(validationResult).toMatch('⛔️ Дата, которую вы ввели уже прошла');
-                    } else {
-                        expect(validationResult).toEqual(arrWithValidatedMonth);
-                    }
-                });
-        });
+    test.each(generateDatesArray({ datesQuantity: 20, minDay: 1, maxDay: 31, minMonth: new Date().getMonth() + 1, maxMonth: new Date().getMonth() + 1 }))
+        ('(Given date -> %p) Throws an error if input month = current, but day is < current day',
+            (dateString) => {
+                return identifyDate(dateString)
+                    .then(dateArray => {
+                        console.log(dateArray);
+                        return validateNumericMonth(dateArray);
+                    })
+                    .then(arrWithValidatedMonth => {
+                        const currentDay = new Date().getDate();
+                        if (arrWithValidatedMonth[1] === new Date().getMonth() && +arrWithValidatedMonth[0] < currentDay) {
+                            expect(validateDay(arrWithValidatedMonth)).rejects.toMatch('⛔️ Дата, которую вы ввели уже прошла');
+                        }
+                    });
+            });
+
+    test.each(generateDatesArray({ datesQuantity: 20, minDay: 1, maxDay: 31, minMonth: 3, maxMonth: 11 }))
+        ('(Given string -> \'%s\') Throws an error if day value exceeds max value in given month',
+            (dateString) => {
+                return identifyDate(dateString)
+                    .then(dateArr => {
+                        return validateNumericMonth(dateArr);
+                    })
+                    .then(arrWithValidatedMonth => {
+                        if (arrWithValidatedMonth[0] > calculateDaysInMonth(arrWithValidatedMonth[1], new Date().getFullYear())) {
+                            expect(validateDay(arrWithValidatedMonth)).rejects.toMatch('⛔️ В месяце, который вы ввели, нет числа');
+                        } else {
+                            expect(validateDay(arrWithValidatedMonth)).resolves.toEqual(arrWithValidatedMonth);
+                        }
+                    })
+            });
+
+    test.each(generateDatesArray({ datesQuantity: 20, minDay: 1, maxDay: 27, minMonth: 3, maxMonth: 12 }))
+        ('')
 });
-// test('If date has expired - throws an error', () => {
-//     const currentMonth = new Date().getMonth();
-//
-//     dates.forEach(item => {
-//         identifyDate(item.string)
-//             .then(result => {
-//                 return validateMonth(result);
-//             })
-//             .then(result => {
-//                 if (item.monthNum < currentMonth) {
-//                     expect(validateDay(result)).rejects.toBe('⛔️ Дата, которую вы ввели уже прошла')
-//                         .catch(err => {
-//                             console.log(err.message);
-//                         });
-//                 } else {
-//                     expect(validateDay(result)).resolves.toEqual(result);
-//                 }
-//             });
-//     });
-// });
