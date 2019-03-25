@@ -1,3 +1,6 @@
+const validateNumericMonth = require('./chunks/validate-numeric-month');
+const validateLiteralMonth = require('./chunks/validate-literal-month');
+
 function validateMonth(date) {
 
     const scheduleDates = {
@@ -76,59 +79,9 @@ function validateMonth(date) {
         } else {
             // Данное условие проверяет дату в формате ["Number", "Number"]
             if (!isNaN(date[monthIndex])) {
-                // date = ["день", "месяц"]
-                // Функция проверяет месяц на соотвествие следующим требованиям:
-                // * Должен быть > 0;
-                // * Должен быть меньше или равен 12
-
-                const monthIndex = date.length - 1;
-
-                return new Promise((resolve, reject) => {
-                    const inputMonth = +date[monthIndex];
-                    // Возвращаем ошибку если число ММ (месяц) больше 12 или меньше/равен нулю
-                    if (inputMonth > 12) {
-                        reject(new Error(`⛔️ Нет месяца #${inputMonth}`));
-                    } else if (inputMonth <= 0) {
-                        reject(new Error(`⛔️ Число месяца не может быть меньше нуля!`));
-                    } else {
-                        for (let key in scheduleDates) {
-                            // Проходит по массиву объектов с датами и в данном случае берет свойство monthNumber,
-                            // содержащее номер месяца
-                            // monthRegEx используется для поиска в строке номера месяца
-                            let searchedMonth = +scheduleDates[key].monthNumber;
-
-                            if (inputMonth === searchedMonth) {
-                                // Добавляем дату в цифровом формате, который будет использован при валидации времени
-                                // Вернуть месяц в числовом типе
-                                date[monthIndex] = monthIndex - 1;
-                                resolve(date);
-                            }
-                        }
-                    }
-                });
+                validateLiteralMonth(date);
             } else {
-                for (let key in scheduleDates) {
-                    let monthRegEx = new RegExp(scheduleDates[key].matchExpression, 'i');
-
-                    // Некоторые месяцы содержат массив шаблонов для регулярных выражений
-                    // для перебора значений массива используется фрагмент кода ниже
-                    if (typeof(scheduleDates[key].matchExpression) === 'object' ) {
-
-                        scheduleDates[key].matchExpression.forEach(item => {
-                            let targetDate = new RegExp(item, 'i');
-                            if (date[monthIndex].search(targetDate) !== -1) {
-                                date[monthIndex] = item.monthNumber - 1;
-                                resolve(date);
-                            }
-                        });
-                    }
-                    // В ячейке номер 2 лежит строка, содержащая название месяца
-                    if (date[monthIndex].search(monthRegEx) !== -1) {
-                        date[monthIndex] = scheduleDates[key].monthNumber - 1;
-                        resolve(date);
-                    }
-                }
-                reject(new Error('⛔️ Пожалуйста, введите корректную дату!'));
+                validateNumericMonth(date);
             }
         }
     });
