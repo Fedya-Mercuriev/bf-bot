@@ -1,4 +1,8 @@
 function validateLiteralMonth(date) {
+    // date = ["день", "месяц"]
+    // Функция проверяет месяц на соотвествие следующим требованиям:
+    // * Должен быть > 0;
+    // * Должен быть меньше или равен 12
     const scheduleDates = {
         'october': {
             matchExpression: "окт",

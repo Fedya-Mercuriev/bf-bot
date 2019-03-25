@@ -88,7 +88,7 @@ function validateNumericMonth(date) {
                 if (inputMonth === searchedMonth) {
                     // Добавляем дату в цифровом формате, который будет использован при валидации времени
                     // Вернуть месяц в числовом типе
-                    date[monthIndex] = searchedMonth;
+                    date[monthIndex] = inputMonth - 1;
                     resolve(date);
                 }
             }
