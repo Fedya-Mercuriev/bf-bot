@@ -6,6 +6,7 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
+const Base = require('../../base-class');
 const ServiceOps = require('../../../service-ops');
 const order = require('../../../../core');
 const Contacts = require("../../../main-page/contacts");
@@ -19,8 +20,9 @@ const dateValidation = new Scene('dateValidation');
 
 let validateDate;
 
-class ValidateDate {
+class ValidateDate extends Base {
     constructor() {
+        super();
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate = null;
         this._messagesToDelete = [];
@@ -36,18 +38,28 @@ class ValidateDate {
         return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
     }
 
-    _cleanScene(ctx) {
-        ctx.scene.messages = this._messagesToDelete;
-        ctx.scene.messages.forEach(({ message_id: id }) => {
+    cleanScene(ctx) {
+        // ctx.scene.messages = this._messagesToDelete;
+        this._messagesToDelete.forEach(({ message_id: id }) => {
             try {
                 ctx.deleteMessage(id);
             } catch (error) {
                 console.log(error);
             }
         });
+        // Удаляет пользовательские сообещния в сцене
+        if (this._userMessages) {
+            this._userMessages.forEach(messageId => {
+                try {
+                    ctx.deleteMessage(messageId);
+                } catch (error) {
+                    console.log(error);
+                }
+            })
+        }
     }
 
-    _invokeFunction(funcName) {
+    invokeFunction(funcName) {
         this[funcName](arguments[1]);
     }
 
@@ -72,11 +84,10 @@ class ValidateDate {
         return new Date(year, month + 1, 0).getDate();
     }
 
-    requestDate(ctx) {
-        ctx.reply(`Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую`)
-            .then(message => {
-                this._messagesToDelete.push(message);
-            });
+    async requestDate(ctx) {
+        this._messagesToDelete.push(
+            await ctx.reply(`Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую`)
+        );
     }
 
     _validateDate(ctx, userInput) {
@@ -85,6 +96,18 @@ class ValidateDate {
         this._identifyDate(userInput)
             .then((result) => {
                 // Затем проверяет месяц
+                if (this._saveDataMsg) {
+                    // Этот блок выполняется если ранее уже была проверена дата и было выведено 
+                    // сообщение с предложением продолжить заказ
+                    const { message_id: id } = this._saveDataMsg;
+                    console.log(this._saveDataMsg);
+                    try {
+                        ctx.deleteMessage(id);
+                    } catch (error) {
+                        console.log(error.message);
+                    }
+                }
+
                 return this._validateMonth(result);
             }, (error) => {
                 ctx.reply(error.message).then(message => {
@@ -97,37 +120,46 @@ class ValidateDate {
             }, (error) => {
                 throw error;
             })
-            .then((resultDate) => {
-                // Создает объект даты с установленными проверенными месяцем и днем
+            .then(async(resultDate) => {
+                // Вызывает функцию для записи получившейся даты в временное хранилище (переменную)
+                // эта дата еще не записана в информацию о заказе
                 this._setTempDate(resultDate);
 
-                ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
-                    .then((messages) => {
-                        this._messagesToDelete.push(messages);
-                        return ServiceOps.requestContinue(ctx, "введите другую дату");
-                    })
-                    .then(message => {
-                        this._saveDataMsg = message;
-                    });
+                this._messagesToDelete.push(
+                    await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
+                );
+                this._saveDataMsg = await ServiceOps.requestContinue(ctx, "введите другую дату");
             })
-            .catch((error) => {
+            .catch(async(error) => {
                 if (error.message === "сегодня") {
                     validateDate.date = validateDate._calculateDate(true);
-                    ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`).then(() => {
-                        ServiceOps.requestContinue(ctx, "введите другую дату");
-                    });
+                    this._messagesToDelete.push(
+                        await ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`)
+                    );
+                    this._messagesToDelete.push(
+                        ServiceOps.requestContinue(ctx, "введите другую дату")
+                    );
+
                 } else if (error.message === "завтра") {
                     validateDate.date = validateDate._calculateDate(false);
-                    ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`).then(() => {
-                        ServiceOps.requestContinue(ctx, "введите другую дату");
-                    });
+                    this._messagesToDelete.push(
+                        await ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`)
+                    );
+                    this._messagesToDelete.push(
+                        await ServiceOps.requestContinue(ctx, "введите другую дату")
+                    );
+
                 } else {
-                    ctx.reply(error.message);
+                    this._messagesToDelete.push(
+                        await ctx.reply(error.message)
+                    );
                 }
             });
     }
 
     _setTempDate(date) {
+        // Дата в объекте orderInfo хранится в формате миллисекунд, потому надо преобразовать 
+        // получившуюся
         let result = new Date();
         const [day, month] = date;
         result.setDate(day);
@@ -135,7 +167,28 @@ class ValidateDate {
         this.tempDate = Date.parse(result);
     }
 
+    _saveAndExit(ctx) {
+        // Сохраняет инфу и выходит в главное меню
+        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "⏳ Сохраняю выбранную дату");
+        order.orderInfo = ['orderDate', validateDate.date];
+        ctx.scene.leave('dateValidation');
+    }
+
+    _overwriteData(ctx) {
+        // Функция выводящая сообщение, запрашивающее ввод даты
+        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "⏳ Минуточку");
+        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
+    }
+
+    _leaveData(ctx) {
+        // Функция выводящая меню заказа (нужна для реакции на соответствующую callback-кнопку)
+        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "⏳ Загружаю меню заказа");
+        ctx.scene.leave('dateValidation');
+    }
+
     confirmDateOverride(ctx, date) {
+        // Функция выводит ранее выбранеую и сохраненную дату и предлагает перезаписать ее 
+        // или оставить
         ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`)
             .then(message => {
                 this._messagesToDelete.push(message);
@@ -201,8 +254,15 @@ dateValidation.enter((ctx) => {
         validateDate.requestDate(ctx, orderDate);
     }
 });
+dateValidation.leave((ctx) => {
+    validateDate.cleanScene(ctx);
+    order.displayInterface(ctx);
+})
 
-dateValidation.on('message', (ctx) => {
+dateValidation.on('message', async(ctx) => {
+
+    validateDate.userMessages = ctx.update.message['message_id'];
+
     if (ctx.update.message.text.match(/меню заказа/i)) {
         ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
 
@@ -218,22 +278,10 @@ dateValidation.on('message', (ctx) => {
 });
 
 dateValidation.on('callback_query', (ctx) => {
-    ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "");
-
-    if (ctx.update['callback_query'].data === '_overwriteData') {
-        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
-
-        // Для обработки callback-кнопки "Оставить"
-    } else if (ctx.update['callback_query'].data === '_leaveData') {
-        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'dateValidation');
-
-    } else {
-        // Обработать кнопку "Продолжить"
-        order.orderInfo = ['orderDate', validateDate.date];
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx, `Выберите любой пункт в меню и следуйте инструкциям.
-            \nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`);
-        ctx.scene.leave('dateValidation');
+    try {
+        validateDate.invokeFunction(ctx.update['callback_query'].data, ctx);
+    } catch (error) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⛔ Cейчас эта кнопка не доступна!');
     }
 });
 
