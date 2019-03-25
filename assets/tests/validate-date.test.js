@@ -231,7 +231,7 @@ describe('Month validation', () => {
 
     describe('Testing numeric month validation', () => {
 
-        test.only.each([{
+        test.each([{
                 string: '22.04',
                 num: 3
             }, {
@@ -253,7 +253,7 @@ describe('Month validation', () => {
                 }
             );
 
-        test.only.each([
+        test.each([
             '12, 01',
             '3, 02',
             '1, 2',
@@ -261,7 +261,7 @@ describe('Month validation', () => {
             '2, 1',
             '15, 02'
         ])(
-            '(Given array -> \'[%s, %s]\') Throws error If input month is less than current month',
+            '(Given array -> \'[%s]\') Throws error If input month is less than current month',
             (dateArr) => {
                 return validateNumericMonth(dateArr)
                     .catch(err => {
@@ -288,29 +288,77 @@ describe('Month validation', () => {
                         });
                 }
             );
+
+        test.only.each([
+                '21,0',
+                '01,0',
+                '02,0',
+                '10,0',
+                '1,0',
+                '3,0',
+                '12,0'
+            ])
+            ('(Given string -> \'%s\') Throws an error if month value is 0',
+                async(dateStr) => {
+                    const dateArr = await identifyDate(dateStr);
+                    if (+dateArr[1] !== 0) {
+                        return validateNumericMonth(dateArr)
+                            .then(result => {
+                                expect(result).toEqual(dateArr);
+                            })
+                    } else {
+                        return validateNumericMonth(dateArr)
+                            .catch(e => {
+                                expect(e.message).toMatch('⛔️ Число месяца не может быть меньше или равно нулю!');
+                            })
+                    }
+                })
     });
 });
 
 describe('Testing day validation', () => {
 
-    test.each(generateDatesArray({ datesQuantity: 20, minDay: 1, maxDay: 31, minMonth: new Date().getMonth() + 1, maxMonth: new Date().getMonth() + 1 }))
-        ('(Given date -> %p) Throws an error if input month = current, but day is < current day',
-            (dateString) => {
-                return identifyDate(dateString)
-                    .then(dateArray => {
-                        console.log(dateArray);
-                        return validateNumericMonth(dateArray);
-                    })
-                    .then(arrWithValidatedMonth => {
-                        const currentDay = new Date().getDate();
-                        if (arrWithValidatedMonth[1] === new Date().getMonth() && +arrWithValidatedMonth[0] < currentDay) {
-                            expect(validateDay(arrWithValidatedMonth)).rejects.toMatch('⛔️ Дата, которую вы ввели уже прошла');
-                        }
-                    });
+    test.each([
+            '21, 2',
+            '1, 2',
+            '15, 2',
+            '24, 2',
+            '5, 2',
+            '8, 2',
+            '14, 2',
+        ])
+        ('(Given date -> %s) Throws an error if input month = current, but day is < current day',
+            (dateStr) => {
+                let dateArray = dateStr.split(',');
+                dateArray[1] = +dateArray[1];
+
+                validateDay(dateArray).catch(e => {
+                    expect(e.message).toMatch('⛔️ Дата, которую вы ввели уже прошла');
+                })
+
             });
 
-    test.each(generateDatesArray({ datesQuantity: 20, minDay: 1, maxDay: 31, minMonth: 3, maxMonth: 11 }))
-        ('(Given string -> \'%s\') Throws an error if day value exceeds max value in given month',
+    test.each([
+            '21, 3',
+            '1, 10',
+            '15, 4',
+            '24, 7',
+            '5, 11',
+            '8, 8',
+            '14, 5',
+        ])
+        ('(Given string -> \'%s\') Day value in the resolved arr is a number',
+            (dateStr) => {
+                let dateArray = dateStr.split(',');
+                dateArray[1] = +dateArray[1];
+
+                validateDay(dateArray).then(result => {
+                    expect(typeof result[0] === 'number').toBeTruthy();
+                })
+            })
+
+    test.each(generateDatesArray({ datesQuantity: 20, minDay: 30, maxDay: 32, minMonth: 3, maxMonth: 11 }))
+        ('(Given string -> \'%s\') Throws an error if day value exceeds max value in given month; otherwise resolves date array',
             (dateString) => {
                 return identifyDate(dateString)
                     .then(dateArr => {
@@ -325,6 +373,12 @@ describe('Testing day validation', () => {
                     })
             });
 
-    test.each(generateDatesArray({ datesQuantity: 20, minDay: 1, maxDay: 27, minMonth: 3, maxMonth: 12 }))
-        ('')
+    test.each([
+            '32.8',
+            '2.00'
+        ])
+        ('If is accidentally given a string - throws an error demanding to enter a correct date',
+            (dateStr) => {
+
+            })
 });
