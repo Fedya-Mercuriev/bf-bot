@@ -79,6 +79,7 @@ function validateNumericMonth(date) {
         } else if (inputMonth - 1 < currentMonth) {
             reject(new Error('⛔ Увы, нельзя заказывать букет на дату, которая уже прошла!'));
         } else {
+            let result = null;
             for (let key in scheduleDates) {
                 // Проходит по массиву объектов с датами и в данном случае берет свойство monthNumber,
                 // содержащее номер месяца
@@ -88,13 +89,14 @@ function validateNumericMonth(date) {
                 if (inputMonth === searchedMonth) {
                     // Добавляем дату в цифровом формате, который будет использован при валидации времени
                     // Вернуть месяц в числовом типе
-                    date[monthIndex] = inputMonth - 1;
-                    resolve(date);
+                    result = inputMonth - 1;
+                    break;
                 }
             }
+            date[monthIndex] = result;
+            resolve(date);
         }
     });
 }
 
 module.exports = validateNumericMonth;
-

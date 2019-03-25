@@ -74,7 +74,7 @@ function validateLiteralMonth(date) {
 
             // Некоторые месяцы содержат массив шаблонов для регулярных выражений
             // для перебора значений массива используется фрагмент кода ниже
-            if (typeof(scheduleDates[key].matchExpression) === 'object' ) {
+            if (typeof(scheduleDates[key].matchExpression) === 'object') {
                 const currentlyIteratedMonth = scheduleDates[key];
 
                 scheduleDates[key].matchExpression.forEach(item => {
