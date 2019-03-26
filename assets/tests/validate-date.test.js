@@ -110,6 +110,42 @@ describe('Testing literal date input', () => {
                 expect(Array.isArray(result)).toBeTruthy();
             });
         });
+
+    test.each([
+            '18. njkcd',
+            '01 sept',
+            '17. xxx',
+            '31. march',
+            '29-abc',
+            '22/ december',
+            '8,  jul',
+            '14. fgh'
+        ])
+        ('(Given string -> (\'%s\')) Throws an error If is provided with str containing latin letters',
+            dateStr => {
+                return identifyDate(dateStr).catch(e => {
+                    expect(e.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                });
+            })
+
+    test.only.each([
+            '18. 日期',
+            '01 👿👩‍🎨📍',
+            '17. 呵呵',
+            '31. 错误',
+            '29-😃😀😎',
+            '29/ 😃😀😎',
+            '22/ 日期',
+            '22， 日期',
+            '8,  👿👩‍🎨📍',
+            '14. 检查'
+        ])
+        ('(Given string -> (\'%s\')) Throws an error If is provided with other non-cyrillic characters',
+            dateStr => {
+                return identifyDate(dateStr).catch(e => {
+                    expect(e.message).toMatch('⛔️ Пожалуйста, введите корректную дату!');
+                });
+            })
 });
 
 describe('Testing numeric date input', () => {
@@ -289,8 +325,8 @@ describe('Month validation', () => {
                 }
             );
 
-        test.only.each([
-                '21,0',
+        test.each([
+                '21, 04',
                 '01,0',
                 '02,0',
                 '10,0',
@@ -372,13 +408,4 @@ describe('Testing day validation', () => {
                         }
                     })
             });
-
-    test.each([
-            '32.8',
-            '2.00'
-        ])
-        ('If is accidentally given a string - throws an error demanding to enter a correct date',
-            (dateStr) => {
-
-            })
 });
