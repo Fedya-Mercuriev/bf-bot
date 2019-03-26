@@ -1,5 +1,5 @@
-const validateNumericMonth = require('./chunks/validate-numeric-month');
-const validateLiteralMonth = require('./chunks/validate-literal-month');
+const validateNumericMonth = require('./validate-numeric-month');
+const validateLiteralMonth = require('./validate-literal-month');
 
 function validateMonth(date) {
     // Функция получает массив
