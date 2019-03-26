@@ -3,14 +3,14 @@ function identifyDate(string) {
     return new Promise((resolve, reject) => {
         let result;
 
-        if (string.match(/(\d{1,2})[\s\/.,\-]{0,}([а-яё]+)/i)) {
-            result = string.match(/(\d{1,2})[\s\/.,\-]{0,}([а-яё]+)/i);
+        if (string.match(/^(\d{1,2})[\s\/.,\-]{1,}([а-яё]+)$/i)) {
+            result = string.match(/(\d{1,2})[\s\/.,\-]{1,}([а-яё]+)/i);
             result = result.splice(1, 2);
             // Результат: ["день", "месяц"]
             resolve(result);
 
-        } else if (string.match(/(\d{1,2})[\s\/.,:\\-]{0,}(\d{1,2})/i)) {
-            result = string.match(/(\d{1,2})[\s\/.,:\\-]{0,}(\d{1,2})/i);
+        } else if (string.match(/^(\d{1,2})[\s\/.,:\\-]{1,}(\d{1,2})$/i)) {
+            result = string.match(/(\d{1,2})[\s\/.,:\\-]{1,}(\d{1,2})/i);
             // На данном этапе result выглядит так: ["26.06"]
             result = result.splice(1, 2);
             // Результат: (Array) ["день", "месяц"]
