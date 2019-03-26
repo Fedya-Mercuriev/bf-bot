@@ -1,13 +1,13 @@
 const Telegraf = require('telegraf');
-const { Markup, Extra } = Telegraf;
+const { Markup } = Telegraf;
 const Contacts = require('../../../../main-page/contacts');
 
 function checkCloseAvailableDates(now) {
     // now - объект даты, созданный в момент вызова сцены выбора даты
     let workingHours,
         availableCloseDates = [
-            Markup.callbackButton('Сегодня', 'Сегодня'),
-            Markup.callbackButton('Завтра', 'Завтра')
+            Markup.callbackButton('Сегодня', '_quickDatePick:сегодня'),
+            Markup.callbackButton('Завтра', '_quickDatePick:завтра')
         ];
     // Подберем соответствующие дню недели часы работы
     if (now.getDay() === 6 || now.getDay() === 0) {
