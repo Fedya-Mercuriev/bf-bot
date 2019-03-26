@@ -40,6 +40,9 @@ class ValidateDate extends Base {
 
     cleanScene(ctx) {
         // ctx.scene.messages = this._messagesToDelete;
+        if (this._saveDataMsg) {
+            this._messagesToDelete.push(this._saveDataMsg);
+        }
         this._messagesToDelete.forEach(({ message_id: id }) => {
             try {
                 ctx.deleteMessage(id);
@@ -47,16 +50,6 @@ class ValidateDate extends Base {
                 console.log(error);
             }
         });
-        // Удаляет пользовательские сообещния в сцене
-        if (this._userMessages) {
-            this._userMessages.forEach(messageId => {
-                try {
-                    ctx.deleteMessage(messageId);
-                } catch (error) {
-                    console.log(error);
-                }
-            })
-        }
     }
 
     invokeFunction(funcName) {
@@ -109,10 +102,6 @@ class ValidateDate extends Base {
                 }
 
                 return this._validateMonth(result);
-            }, (error) => {
-                ctx.reply(error.message).then(message => {
-                    this._messagesToDelete.push(message);
-                });
             })
             .then((result) => {
                 // Проверяет день
@@ -177,7 +166,8 @@ class ValidateDate extends Base {
     _overwriteData(ctx) {
         // Функция выводящая сообщение, запрашивающее ввод даты
         ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "⏳ Минуточку");
-        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
+        this.requestDate(ctx);
+        // ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
     }
 
     _leaveData(ctx) {
@@ -251,7 +241,7 @@ dateValidation.enter((ctx) => {
         orderDate = ValidateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
     } else {
-        validateDate.requestDate(ctx, orderDate);
+        validateDate.requestDate(ctx);
     }
 });
 dateValidation.leave((ctx) => {
@@ -262,18 +252,23 @@ dateValidation.leave((ctx) => {
 dateValidation.on('message', async(ctx) => {
 
     validateDate.userMessages = ctx.update.message['message_id'];
-
-    if (ctx.update.message.text.match(/меню заказа/i)) {
-        ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
-
-    } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
-        ServiceOps.displayPhoneNumber(ctx);
-
-    } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-        ctx.reply("Отменяем заказ (пока нет)");
-
+    if (ctx.updateSubTypes[0] !== 'text') {
+        validateDate._messagesToDelete.push(
+            await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста')
+        );
     } else {
-        validateDate._validateDate(ctx, ctx.message.text);
+        if (ctx.update.message.text.match(/меню заказа/i)) {
+            ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
+
+        } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
+            ServiceOps.displayPhoneNumber(ctx);
+
+        } else if (ctx.update.message.text.match(/отменить заказ/i)) {
+            ctx.reply("Отменяем заказ (пока нет)");
+
+        } else {
+            validateDate._validateDate(ctx, ctx.message.text);
+        }
     }
 });
 
