@@ -6,10 +6,12 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
+// Подключение всех необходимых функций и классов
 const Base = require('../../base-class');
 const ServiceOps = require('../../../service-ops');
+const checkCloseAvailableDates = require('./chunks/get-close-available-dates');
 const order = require('../../../../core');
-const Contacts = require("../../../main-page/contacts");
+// const Contacts = require("../../../main-page/contacts");
 const identifyDate = require('./chunks/identify-date');
 const validateMonth = require('./validate-month');
 const validateDay = require('./chunks/validate-day');
@@ -26,13 +28,16 @@ class ValidateDate extends Base {
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate = null;
         this._messagesToDelete = [];
+        this._availableCloseDates = [];
         this._saveDataMsg = null;
         this._validateMonth = validateMonth;
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
+        this._checkCloseAvailableDates = checkCloseAvailableDates;
     }
 
     static russifyDate(date) {
+        // Получает date в формате миллисекунд
         let months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
             usedDate = new Date(date);
         return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
@@ -53,7 +58,12 @@ class ValidateDate extends Base {
     }
 
     invokeFunction(funcName) {
-        this[funcName](arguments[1]);
+        const context = arguments[1];
+        if (funcName.indexOf(':') !== -1) {
+            const args = funcName.split(':');
+            return this[args.splice(0, 1)](context, ...args);
+        }
+        return this[funcName](context);
     }
 
     _calculateDate(isToday) {
@@ -66,11 +76,30 @@ class ValidateDate extends Base {
         }
 
         currentDate = new Date(Date.now() + oneDay);
-        result.push(currentDate.getFullYear());
-        result.push(currentDate.getMonth());
         result.push(currentDate.getDate());
+        result.push(currentDate.getMonth());
 
         return result;
+    }
+
+    async _quickDatePick(ctx, chosenDate) {
+        // В качестве аргумента получает строку "сегодня" или "завтра"
+        // Эта строка получается исходя из нажатой кнопки
+        // Затем высчитывает дату в формате js для сегодня или завтра и возвращает ее
+        ctx.answerCbQuery(ctx.update['callback_query'].id, '🗓 Рассчитываю дату...');
+        // Устанавливает временную дату
+        if (chosenDate === 'сегодня') {
+            this._setTempDate(this._calculateDate(true));
+        } else {
+            this._setTempDate(this._calculateDate(false));
+        }
+        // Выводит сообщение с подтверждением
+        this._messagesToDelete.push(
+            await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(validateDate.date)}`)
+        );
+        this._messagesToDelete.push(
+            ServiceOps.requestContinue(ctx, "введите другую дату")
+        );
     }
 
     _calculateDaysInMonth(month, year) {
@@ -79,7 +108,8 @@ class ValidateDate extends Base {
 
     async requestDate(ctx) {
         this._messagesToDelete.push(
-            await ctx.reply(`Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую`)
+            await ctx.reply(`Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую`,
+                Markup.inlineKeyboard(this._availableCloseDates).extra())
         );
     }
 
@@ -158,16 +188,17 @@ class ValidateDate extends Base {
 
     _saveAndExit(ctx) {
         // Сохраняет инфу и выходит в главное меню
-        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "⏳ Сохраняю выбранную дату");
+        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, '⏳ Сохраняю выбранную дату');
         order.orderInfo = ['orderDate', validateDate.date];
         ctx.scene.leave('dateValidation');
     }
 
     _overwriteData(ctx) {
         // Функция выводящая сообщение, запрашивающее ввод даты
-        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, "⏳ Минуточку");
+        // console.log(ctx);
+        this.cleanScene(ctx);
+        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, '⏳ Минуточку');
         this.requestDate(ctx);
-        // ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateDate.requestDate.bind(validateDate));
     }
 
     _leaveData(ctx) {
@@ -235,12 +266,14 @@ class ValidateDate extends Base {
 // Команды для сцены
 dateValidation.enter((ctx) => {
     let { orderDate } = order.orderInfo;
+    const now = new Date();
     validateDate = new ValidateDate();
 
     if (orderDate !== undefined) {
         orderDate = ValidateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
     } else {
+        validateDate._availableCloseDates = validateDate._checkCloseAvailableDates(now);
         validateDate.requestDate(ctx);
     }
 });
