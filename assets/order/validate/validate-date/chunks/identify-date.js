@@ -21,7 +21,7 @@ function identifyDate(string) {
             result = string.match(/^сегодня$|^завтра$/i);
             result = result.toString().toLowerCase();
             // Результат: (String) сегодня/завтра
-            resolve(result);
+            reject(new Error(result));
 
         } else {
             reject(new Error('⛔️ Пожалуйста, введите корректную дату!'));
