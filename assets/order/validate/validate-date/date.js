@@ -13,7 +13,7 @@ const checkCloseAvailableDates = require('./chunks/get-close-available-dates');
 const order = require('../../../../core');
 // const Contacts = require("../../../main-page/contacts");
 const identifyDate = require('./chunks/identify-date');
-const validateMonth = require('./validate-month');
+const validateMonth = require('./chunks/validate-month');
 const validateDay = require('./chunks/validate-day');
 
 // const identifyDate = require('./identify-data');
@@ -151,18 +151,18 @@ class ValidateDate extends Base {
             })
             .catch(async(error) => {
                 if (error.message === "сегодня") {
-                    validateDate.date = validateDate._calculateDate(true);
+                    this._setTempDate(validateDate._calculateDate(true));
                     this._messagesToDelete.push(
-                        await ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`)
+                        await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
                     );
                     this._messagesToDelete.push(
                         ServiceOps.requestContinue(ctx, "введите другую дату")
                     );
 
                 } else if (error.message === "завтра") {
-                    validateDate.date = validateDate._calculateDate(false);
+                    this._setTempDate(validateDate._calculateDate(false));
                     this._messagesToDelete.push(
-                        await ctx.reply(`✅ Хорошо, букет будет готов к ${validateDate.russifyDate(validateDate.date)}`)
+                        await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
                     );
                     this._messagesToDelete.push(
                         await ServiceOps.requestContinue(ctx, "введите другую дату")
