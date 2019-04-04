@@ -8,7 +8,7 @@ const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
 // Подключение всех необходимых функций и классов
 const Base = require('../../base-class');
-const ServiceOps = require('../../../service-ops');
+// const ServiceOps = require('../../../service-ops');
 const checkCloseAvailableDates = require('./chunks/get-close-available-dates');
 const order = require('../../../../core');
 // const Contacts = require("../../../main-page/contacts");
@@ -27,7 +27,7 @@ class ValidateDate extends Base {
         super();
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate = null;
-        this._messagesToDelete = [];
+        // this._messagesToDelete = [];
         this._availableCloseDates = [];
         this._saveDataMsg = null;
         this._validateMonth = validateMonth;
@@ -86,7 +86,7 @@ class ValidateDate extends Base {
         // В качестве аргумента получает строку "сегодня" или "завтра"
         // Эта строка получается исходя из нажатой кнопки
         // Затем высчитывает дату в формате js для сегодня или завтра и возвращает ее
-        ctx.answerCbQuery(ctx.update['callback_query'].id, '🗓 Рассчитываю дату...');
+        ctx.telegram.answerCbQuery(ctx.update['callback_query'].id, '🗓 Рассчитываю дату...');
         // Устанавливает временную дату
         if (chosenDate === 'сегодня') {
             this._setTempDate(this._calculateDate(true));
@@ -98,7 +98,7 @@ class ValidateDate extends Base {
             await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(validateDate.date)}`)
         );
         this._messagesToDelete.push(
-            ServiceOps.requestContinue(ctx, "введите другую дату")
+            this._requestContinue(ctx, "введите другую дату")
         );
     }
 
@@ -107,6 +107,8 @@ class ValidateDate extends Base {
     }
 
     async requestDate(ctx) {
+        const now = new Date();
+        this._availableCloseDates = this._checkCloseAvailableDates(now);
         this._messagesToDelete.push(
             await ctx.reply(`Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую`,
                 Markup.inlineKeyboard(this._availableCloseDates).extra())
@@ -147,7 +149,7 @@ class ValidateDate extends Base {
                 this._messagesToDelete.push(
                     await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
                 );
-                this._saveDataMsg = await ServiceOps.requestContinue(ctx, "введите другую дату");
+                this._saveDataMsg = await this._requestContinue(ctx, "введите другую дату");
             })
             .catch(async(error) => {
                 if (error.message === "сегодня") {
@@ -156,7 +158,7 @@ class ValidateDate extends Base {
                         await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
                     );
                     this._messagesToDelete.push(
-                        ServiceOps.requestContinue(ctx, "введите другую дату")
+                        await this._requestContinue(ctx, "введите другую дату")
                     );
 
                 } else if (error.message === "завтра") {
@@ -165,7 +167,7 @@ class ValidateDate extends Base {
                         await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`)
                     );
                     this._messagesToDelete.push(
-                        await ServiceOps.requestContinue(ctx, "введите другую дату")
+                        await this._requestContinue(ctx, "введите другую дату")
                     );
 
                 } else {
@@ -223,57 +225,20 @@ class ValidateDate extends Base {
             });
     }
 
-    // _valiadateDay(dateArr) {
-
-    //     return new Promise((resolve, reject) => {
-    //         if (dateArr) {
-    //             // Преобразуем к JS-дате, а потом возьмем из массива имен месяцев то, что нужно
-    //             let scheduleYear = new Date().getFullYear(),
-    //                 currentMonth = new Date().getMonth(),
-    //                 today = new Date().getDate(),
-    //                 [day, inputMonth] = dateArr,
-    //                 result;
-
-    //             if (inputMonth < currentMonth) {
-    //                 reject(new Error('⛔️ Дата, которую вы ввели уже прошла'));
-    //             }
-    //             // else if (month === currentMonth && day < today) {
-    //             //     scheduleYear++;
-    //             // }
-
-    //             if (day !== 0 && day <= this._calculateDaysInMonth(inputMonth, scheduleYear)) {
-    //                 // dateArr.push(scheduleYear);
-    //                 result = dateArr;
-    //                 resolve(result);
-    //             } else {
-    //                 reject(new Error(`⛔️ В месяце, который вы ввели, нет числа ${day}!`));
-    //             }
-    //         }
-    //     });
-    // }
-
     get date() {
         return this.tempDate;
     }
-
-    // set date(date) {
-    //     let [year, month, day] = date;
-    //     this.tempDate = Date.parse(new Date(year, month, day, 0, 0, 0).toString());
-    //     order.orderInfo = ['orderDate', this.tempDate];
-    // }
 }
 
 // Команды для сцены
 dateValidation.enter((ctx) => {
     let { orderDate } = order.orderInfo;
-    const now = new Date();
     validateDate = new ValidateDate();
 
     if (orderDate !== undefined) {
         orderDate = ValidateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
     } else {
-        validateDate._availableCloseDates = validateDate._checkCloseAvailableDates(now);
         validateDate.requestDate(ctx);
     }
 });
@@ -291,10 +256,10 @@ dateValidation.on('message', async(ctx) => {
         );
     } else {
         if (ctx.update.message.text.match(/меню заказа/i)) {
-            ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
+            validateDate.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
 
         } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
-            ServiceOps.displayPhoneNumber(ctx);
+            validateDate.displayPhoneNumber(ctx);
 
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
             ctx.reply("Отменяем заказ (пока нет)");
