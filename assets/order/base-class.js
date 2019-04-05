@@ -3,6 +3,7 @@ const { Markup, Extra } = Telegraf;
 const Contacts = require('../main-page/contacts');
 
 class Base {
+    // Здесь находятся все общие для всех сцен свойства и методы
     constructor() {
         this._userMessages = [];
     }
@@ -20,7 +21,34 @@ class Base {
         }
     }
 
-    async _requestContinue(ctx, additionalMsg) {
+    _removeConfirmationMessages(ctx) {
+        this._saveDataMsg.forEach(({ message_id: id }) => {
+            try {
+                ctx.deleteMessage(id);
+            } catch (e) {
+                console.log(e.message);
+            }
+        });
+        this._saveDataMsg.length = 0;
+    }
+
+    _cleanScene(ctx) {
+        if (this._saveDataMsg.length !== 0) {
+            ctx.scene.msgToDelete = this._messagesToDelete.concat(this._saveDataMsg);
+        } else {
+            ctx.scene.msgToDelete = this._messagesToDelete;
+        }
+        ctx.scene.msgToDelete.forEach(({ message_id: id }) => {
+            try {
+                ctx.deleteMessage(id);
+            } catch (error) {
+                console.log(error);
+            }
+        });
+        this._messagesToDelete.length = 0;
+    }
+
+    _requestContinue(ctx, additionalMsg) {
         return ctx.reply(`Нажмите на кнопку ниже, чтобы продолжить заказ букета или ${additionalMsg}`,
             Markup.inlineKeyboard([
                 Markup.callbackButton('Продолжить', '_saveAndExit')

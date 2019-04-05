@@ -37,7 +37,8 @@ class ValidateDate extends Base {
         this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate = null;
         this._availableCloseDates = [];
-        this._saveDataMsg = null;
+        // saveDataMsg хранит в себе объекты сообщений с статусом и подтверждением сохранения данных
+        this._saveDataMsg = [];
         this._validateMonth = validateMonth;
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
@@ -49,19 +50,6 @@ class ValidateDate extends Base {
         const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         const usedDate = new Date(date);
         return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
-    }
-
-    cleanScene(ctx) {
-        if (this._saveDataMsg) {
-            this._messagesToDelete.push(this._saveDataMsg);
-        }
-        this._messagesToDelete.forEach(({ message_id: id }) => {
-            try {
-                ctx.deleteMessage(id);
-            } catch (error) {
-                console.log(error);
-            }
-        });
     }
 
     invokeFunction(funcName) {
@@ -80,7 +68,6 @@ class ValidateDate extends Base {
         if (!isToday) {
             oneDay = 86400000;
         }
-
         currentDate = new Date(Date.now() + oneDay);
         result.push(currentDate.getDate());
         result.push(currentDate.getMonth());
@@ -100,9 +87,8 @@ class ValidateDate extends Base {
             this._setTempDate(this._calculateDate(false));
         }
 
-        if (this._saveDataMsg) {
-            const { message_id: id } = this._saveDataMsg;
-            ctx.deleteMessage(id);
+        if (this._saveDataMsg.length !== 0) {
+            this._removeConfirmationMessages(ctx);
         }
         // Выводит сообщение с подтверждением
         this._saveDataMsg.push(
@@ -129,23 +115,9 @@ class ValidateDate extends Base {
     _validateDate(ctx, userInput) {
         // Начинаем с распознавания даты
         this._identifyDate(userInput)
-            .then((result) => {
-                // Затем проверяет месяц
-                if (this._saveDataMsg) {
-                    // Этот блок выполняется если ранее уже была проверена дата и было выведено
-                    // сообщение с предложением продолжить заказ
-                    const { message_id: id } = this._saveDataMsg;
-                    console.log(this._saveDataMsg);
-                    try {
-                        ctx.deleteMessage(id);
-                    } catch (error) {
-                        console.log(error.message);
-                    }
-                }
-
-                return this._validateMonth(result);
-            })
-            // Проверяет день
+            // Затем проверяем месяц
+            .then(result => this._validateMonth(result))
+            // Проверяем день
             .then(
                 result => this._valiadateDay(result),
                 (error) => {
@@ -153,32 +125,40 @@ class ValidateDate extends Base {
                 },
             )
             .then(async(resultDate) => {
-                // Вызывает функцию для записи получившейся даты в временное хранилище (переменную)
+                // Вызываем функцию для записи получившейся даты в временное хранилище (переменную)
                 // эта дата еще не записана в информацию о заказе
                 this._setTempDate(resultDate);
 
-                this._messagesToDelete.push(
+                if (this._saveDataMsg.length !== 0) {
+                    // Этот блок выполняется если ранее уже была проверена дата и было выведено
+                    // сообщение с предложением продолжить заказ
+                    this._removeConfirmationMessages(ctx);
+                }
+
+                this._saveDataMsg.push(
                     await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`),
                 );
-                this._saveDataMsg = await this._requestContinue(ctx, 'введите другую дату');
+                this._saveDataMsg.push(
+                    await this._requestContinue(ctx, 'введите другую дату'),
+                );
             })
             .catch(async(error) => {
                 if (error.message === 'сегодня') {
                     this._setTempDate(validateDate._calculateDate(true));
-                    this._messagesToDelete.push(
+                    this._saveDataMsg.push(
                         await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`),
                     );
-                    this._messagesToDelete.push(
+                    this._saveDataMsg.push(
                         await this._requestContinue(ctx, 'введите другую дату'),
                     );
 
                 } else if (error.message === 'завтра') {
                     this._setTempDate(validateDate._calculateDate(false));
-                    this._messagesToDelete.push(
+                    this._saveDataMsg.push(
                         await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`),
                     );
-                    this._messagesToDelete.push(
-                        await this._requestContinue(ctx, 'введите другую дату')
+                    this._saveDataMsg.push(
+                        await this._requestContinue(ctx, 'введите другую дату'),
                     );
 
                 } else {
@@ -208,7 +188,7 @@ class ValidateDate extends Base {
 
     _overwriteData(ctx) {
         // Функция выводящая сообщение, запрашивающее ввод даты
-        this.cleanScene(ctx);
+        this._cleanScene(ctx);
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Минуточку');
         this.requestDate(ctx);
     }
@@ -253,7 +233,7 @@ dateValidation.enter((ctx) => {
     }
 });
 dateValidation.leave((ctx) => {
-    validateDate.cleanScene(ctx);
+    validateDate._cleanScene(ctx);
     order.displayInterface(ctx);
 });
 
