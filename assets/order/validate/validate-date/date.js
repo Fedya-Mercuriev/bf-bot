@@ -52,14 +52,7 @@ class ValidateDate extends Base {
         return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
     }
 
-    invokeFunction(funcName) {
-        const context = arguments[1];
-        if (funcName.indexOf(':') !== -1) {
-            const args = funcName.split(':');
-            return this[args.splice(0, 1)](context, ...args);
-        }
-        return this[funcName](context);
-    }
+
 
     _calculateDate(isToday) {
         let oneDay = 0;

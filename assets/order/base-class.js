@@ -21,6 +21,15 @@ class Base {
         }
     }
 
+    invokeFunction(funcName) {
+        const context = arguments[1];
+        if (funcName.indexOf(':') !== -1) {
+            const args = funcName.split(':');
+            return this[args.splice(0, 1)](context, ...args);
+        }
+        return this[funcName](context);
+    }
+
     _removeConfirmationMessages(ctx) {
         this._saveDataMsg.forEach(({ message_id: id }) => {
             try {
