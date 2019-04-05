@@ -38,7 +38,7 @@ class ValidateDate extends Base {
         this.tempDate = null;
         this._availableCloseDates = [];
         // saveDataMsg хранит в себе объекты сообщений с статусом и подтверждением сохранения данных
-        this._saveDataMsg = [];
+        // this._confirmationMessages = [];
         this._validateMonth = validateMonth;
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
@@ -52,8 +52,6 @@ class ValidateDate extends Base {
         return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
     }
 
-
-
     _calculateDate(isToday) {
         let oneDay = 0;
         let result = [];
@@ -64,7 +62,6 @@ class ValidateDate extends Base {
         currentDate = new Date(Date.now() + oneDay);
         result.push(currentDate.getDate());
         result.push(currentDate.getMonth());
-
         return result;
     }
 
@@ -80,16 +77,12 @@ class ValidateDate extends Base {
             this._setTempDate(this._calculateDate(false));
         }
 
-        if (this._saveDataMsg.length !== 0) {
+        if (this._confirmationMessages.length !== 0) {
             this._removeConfirmationMessages(ctx);
         }
         // Выводит сообщение с подтверждением
-        this._saveDataMsg.push(
-            await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(validateDate.date)}`),
-        );
-        this._saveDataMsg.push(
-            await this._requestContinue(ctx, 'введите другую дату'),
-        );
+        this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(validateDate.date)}`);
+        this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
     }
 
     _calculateDaysInMonth(month, year) {
@@ -99,10 +92,8 @@ class ValidateDate extends Base {
     async requestDate(ctx) {
         const now = new Date();
         this._availableCloseDates = this._checkCloseAvailableDates(now);
-        this._messagesToDelete.push(
-            await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
-                Markup.inlineKeyboard(this._availableCloseDates).extra()),
-        );
+        this._messagesToDelete = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
+            Markup.inlineKeyboard(this._availableCloseDates).extra());
     }
 
     _validateDate(ctx, userInput) {
@@ -122,42 +113,28 @@ class ValidateDate extends Base {
                 // эта дата еще не записана в информацию о заказе
                 this._setTempDate(resultDate);
 
-                if (this._saveDataMsg.length !== 0) {
+                if (this._confirmationMessages.length !== 0) {
                     // Этот блок выполняется если ранее уже была проверена дата и было выведено
                     // сообщение с предложением продолжить заказ
                     this._removeConfirmationMessages(ctx);
                 }
 
-                this._saveDataMsg.push(
-                    await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`),
-                );
-                this._saveDataMsg.push(
-                    await this._requestContinue(ctx, 'введите другую дату'),
-                );
+                this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
+                this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
             })
             .catch(async(error) => {
                 if (error.message === 'сегодня') {
                     this._setTempDate(validateDate._calculateDate(true));
-                    this._saveDataMsg.push(
-                        await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`),
-                    );
-                    this._saveDataMsg.push(
-                        await this._requestContinue(ctx, 'введите другую дату'),
-                    );
+                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
+                    this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
 
                 } else if (error.message === 'завтра') {
                     this._setTempDate(validateDate._calculateDate(false));
-                    this._saveDataMsg.push(
-                        await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`),
-                    );
-                    this._saveDataMsg.push(
-                        await this._requestContinue(ctx, 'введите другую дату'),
-                    );
+                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
+                    this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
 
                 } else {
-                    this._messagesToDelete.push(
-                        await ctx.reply(error.message),
-                    );
+                    this._messagesToDelete = await ctx.reply(error.message);
                 }
             });
     }
@@ -197,14 +174,14 @@ class ValidateDate extends Base {
         // или оставить
         ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`)
             .then((message) => {
-                this._messagesToDelete.push(message);
+                this._messagesToDelete = message;
                 return ctx.reply('Перезаписать ее или оставить?', Markup.inlineKeyboard([
                     [Markup.callbackButton('Перезаписать', '_overwriteData')],
                     [Markup.callbackButton('Оставить', '_leaveData')],
                 ]).extra());
             })
             .then((message) => {
-                this._messagesToDelete.push(message);
+                this._messagesToDelete = message;
             });
     }
 
@@ -234,9 +211,7 @@ dateValidation.on('message', async(ctx) => {
 
     validateDate.userMessages = ctx.update.message.message_id;
     if (ctx.updateSubTypes[0] !== 'text') {
-        validateDate._messagesToDelete.push(
-            await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста'),
-        );
+        validateDate._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста');
 
     } else if (ctx.update.message.text.match(/меню заказа/i)) {
         validateDate.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');

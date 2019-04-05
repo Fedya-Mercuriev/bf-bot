@@ -1,3 +1,5 @@
+/* eslint-disable indent */
+/* eslint-disable no-underscore-dangle */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
 const Contacts = require('../main-page/contacts');
@@ -5,19 +7,33 @@ const Contacts = require('../main-page/contacts');
 class Base {
     // Здесь находятся все общие для всех сцен свойства и методы
     constructor() {
-        this._userMessages = [];
+        this._botSentMessages = [];
+        this._saveDataMsg = [];
     }
 
     get _messagesToDelete() {
-        return this._userMessages;
+        return this._botSentMessages;
     }
 
     set _messagesToDelete(message) {
-        if (message === 'delete') {
-            this._userMessages.length = 0;
+        if (message === 'clearArr') {
+            this._botSentMessages.length = 0;
         } else {
             const { message_id: id } = message;
-            this._userMessages.push(id);
+            this._botSentMessages.push(id);
+        }
+    }
+
+    get _confirmationMessages() {
+        return this._saveDataMsg;
+    }
+
+    set _confirmationMessages(message) {
+        if (message === 'clearArr') {
+            this._saveDataMsg.length = 0;
+        } else {
+            const { message_id: id } = message;
+            this._saveDataMsg.push(id);
         }
     }
 
@@ -31,14 +47,14 @@ class Base {
     }
 
     _removeConfirmationMessages(ctx) {
-        this._saveDataMsg.forEach(({ message_id: id }) => {
+        this._confirmationMessages.forEach((id) => {
             try {
                 ctx.deleteMessage(id);
             } catch (e) {
                 console.log(e.message);
             }
         });
-        this._saveDataMsg.length = 0;
+        this._confirmationMessages = 'clearArr';
     }
 
     _cleanScene(ctx) {
@@ -47,14 +63,14 @@ class Base {
         } else {
             ctx.scene.msgToDelete = this._messagesToDelete;
         }
-        ctx.scene.msgToDelete.forEach(({ message_id: id }) => {
+        ctx.scene.msgToDelete.forEach((id) => {
             try {
                 ctx.deleteMessage(id);
             } catch (error) {
                 console.log(error);
             }
         });
-        this._messagesToDelete.length = 0;
+        this._messagesToDelete = 'clearArr';
     }
 
     _requestContinue(ctx, additionalMsg) {
