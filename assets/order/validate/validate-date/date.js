@@ -43,6 +43,11 @@ class ValidateDate extends Base {
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
         this._checkCloseAvailableDates = checkCloseAvailableDates;
+        this.saveDataKeysArr = [
+            'orderDate', 'date', 'Сохраняю выбранную дату', 'dateValidation',
+        ];
+        this.leaveDataInfo = 'dateValidation';
+        this.overwriteDataInfo = 'requestDate';
     }
 
     static russifyDate(date) {
@@ -82,7 +87,7 @@ class ValidateDate extends Base {
         }
         // Выводит сообщение с подтверждением
         this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(validateDate.date)}`);
-        this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
+        this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
     }
 
     _calculateDaysInMonth(month, year) {
@@ -120,18 +125,21 @@ class ValidateDate extends Base {
                 }
 
                 this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
-                this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
+                this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
             })
             .catch(async(error) => {
+                if (this._confirmationMessages.length !== 0) {
+                    this._removeConfirmationMessages(ctx);
+                }
                 if (error.message === 'сегодня') {
                     this._setTempDate(validateDate._calculateDate(true));
                     this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
-                    this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
+                    this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else if (error.message === 'завтра') {
                     this._setTempDate(validateDate._calculateDate(false));
                     this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
-                    this._confirmationMessages = await this._requestContinue(ctx, 'введите другую дату');
+                    this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else {
                     this._messagesToDelete = await ctx.reply(error.message);
@@ -149,26 +157,6 @@ class ValidateDate extends Base {
         this.tempDate = Date.parse(result);
     }
 
-    _saveAndExit(ctx) {
-        // Сохраняет инфу и выходит в главное меню
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Сохраняю выбранную дату');
-        order.orderInfo = ['orderDate', validateDate.date];
-        ctx.scene.leave('dateValidation');
-    }
-
-    _overwriteData(ctx) {
-        // Функция выводящая сообщение, запрашивающее ввод даты
-        this._cleanScene(ctx);
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Минуточку');
-        this.requestDate(ctx);
-    }
-
-    _leaveData(ctx) {
-        // Функция выводящая меню заказа (нужна для реакции на соответствующую callback-кнопку)
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю меню заказа');
-        ctx.scene.leave('dateValidation');
-    }
-
     confirmDateOverride(ctx, date) {
         // Функция выводит ранее выбранеую и сохраненную дату и предлагает перезаписать ее
         // или оставить
@@ -176,8 +164,8 @@ class ValidateDate extends Base {
             .then((message) => {
                 this._messagesToDelete = message;
                 return ctx.reply('Перезаписать ее или оставить?', Markup.inlineKeyboard([
-                    [Markup.callbackButton('Перезаписать', '_overwriteData')],
-                    [Markup.callbackButton('Оставить', '_leaveData')],
+                    [Markup.callbackButton('Перезаписать', `_overwriteData:${this.overwriteDataInfo}`)],
+                    [Markup.callbackButton('Оставить', `_leaveData:${this.leaveDataInfo}`)],
                 ]).extra());
             })
             .then((message) => {
@@ -201,10 +189,6 @@ dateValidation.enter((ctx) => {
     } else {
         validateDate.requestDate(ctx);
     }
-});
-dateValidation.leave((ctx) => {
-    validateDate._cleanScene(ctx);
-    order.displayInterface(ctx);
 });
 
 dateValidation.on('message', async(ctx) => {
