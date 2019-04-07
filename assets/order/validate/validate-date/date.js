@@ -43,9 +43,12 @@ class ValidateDate extends Base {
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
         this._checkCloseAvailableDates = checkCloseAvailableDates;
-        this.saveDataKeysArr = [
-            'orderDate', 'date', 'Сохраняю выбранную дату', 'dateValidation',
-        ];
+        this.saveDataKeysArr = {
+            keyToAssignData: 'orderDate',
+            keyToAccessData: 'date',
+            notificationMsg: 'Сохраняю выбранную дату',
+            sceneName: 'dateValidation',
+        };
         this.leaveDataInfo = 'dateValidation';
         this.overwriteDataInfo = 'requestDate';
     }

@@ -65,12 +65,12 @@ class Base {
         // @keyToAccessData – ключ, по которому можн получить данные для записи в orderInfo
         // @notificationMsg – сообщение, которое будет выводится в окне дял уведомлений
         // @sceneName – названий сцены, из которой будет выходить пользователь
-        const [
+        const {
             keyToAssignData,
             keyToAccessData,
             notificationMsg,
             sceneName,
-        ] = this[optionsArrName];
+        } = this[optionsArrName];
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, `⏳ ${notificationMsg}`);
         order.orderInfo = [keyToAssignData, this[keyToAccessData]];
         this.returnToMenu(ctx, sceneName);
