@@ -1,8 +1,8 @@
 'use strict';
-const validateDay = require('../order/validate/validate-date/chunks/validate-day');
-const validateLiteralMonth = require('../order/validate/validate-date/chunks/validate-literal-month');
-const validateNumericMonth = require('../order/validate/validate-date/chunks/validate-numeric-month');
-const identifyDate = require('../order/validate/validate-date/chunks/identify-date');
+const validateDay = require('../../order/validate/validate-date/chunks/validate-day');
+const validateLiteralMonth = require('../../order/validate/validate-date/chunks/validate-literal-month');
+const validateNumericMonth = require('../../order/validate/validate-date/chunks/validate-numeric-month');
+const identifyDate = require('../../order/validate/validate-date/chunks/identify-date');
 
 const dateStrings = ['22 фев', '09 окт', '1.февр', '17-декабря', '05,мая', '01/нояб', '12,дека', '30 июня', '05.июль'];
 

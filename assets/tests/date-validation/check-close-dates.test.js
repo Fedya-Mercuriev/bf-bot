@@ -1,4 +1,4 @@
-const checkCloseAvailableDates = require('../order/validate/validate-date/chunks/get-close-available-dates');
+const checkCloseAvailableDates = require('../../order/validate/validate-date/chunks/get-close-available-dates');
 
 let givenDate;
 
