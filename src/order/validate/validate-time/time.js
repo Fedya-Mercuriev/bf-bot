@@ -2,23 +2,17 @@
 /* eslint-disable semi */
 /* eslint-disable indent */
 const Telegraf = require('telegraf');
-
 const { Markup, Extra } = Telegraf;
-
 const session = require('telegraf/session');
-
 const Stage = require('telegraf/stage');
-
 const Scene = require('telegraf/scenes/base');
-
 const Contacts = require('../../../main-page/contacts');
-
 const { leave } = Stage;
-
 const Base = require('./../../base-class');
-
+// Импортируем операции для валидации времени
 const identifyTime = require('./chunks/identify-time');
-
+const checkTimeRelevance = require('./chunks/check-time-relevance');
+const { checkTime } = require('./chunks/check-time');
 const order = require('../../../../core');
 
 const timeValidation = new Scene('timeValidation');
@@ -30,6 +24,8 @@ class Time extends Base {
         this.validatedTime = undefined;
         this.workingHours = {};
         this.identifyTime = identifyTime;
+        this._checkTime = checkTime;
+        this._checkTimeRelevance = checkTimeRelevance;
         this.saveDataKeysArr = {
             keyToAssignData: 'orderTime',
             keyToAccessData: 'time',
@@ -44,10 +40,6 @@ class Time extends Base {
         return this.validatedTime;
     }
 
-    set time(time) {
-        this.validatedTime = time;
-    }
-
     _hasDateAndShipping(date, shipping) {
         return new Promise((resolve, reject) => {
             if (date !== undefined && shipping !== undefined) {
@@ -59,35 +51,25 @@ class Time extends Base {
     }
 
     _getWorkingHours(date) {
-        let workingHours = { start: 0, finish: 0 },
-            usedDate = new Date(date);
+        let workingHours = { start: 0, finish: 0 };
+        const usedDate = new Date(date);
         if (usedDate.getDay() === 6 || usedDate.getDay() === 0) {
-            let { start, finish } = Contacts.workingHours.weekends;
+            const { start, finish } = Contacts.workingHours.weekends;
             workingHours.start = start;
             workingHours.finish = finish;
             return workingHours;
-        } else {
-            let { start, finish } = Contacts.workingHours.weekdays;
-            workingHours.start = start;
-            workingHours.finish = finish;
-            this.workingHours = workingHours;
-            return workingHours;
         }
-    }
-
-    _isToday(date) {
-        let usedDate = new Date(date);
-        if (usedDate.getFullYear() === this.today.getFullYear() && usedDate.getMonth() === this.today.getMonth() && usedDate.getDate() === this.today.getDate()) {
-            return true;
-        } else {
-            return false;
-        }
+        const { start, finish } = Contacts.workingHours.weekdays;
+        workingHours.start = start;
+        workingHours.finish = finish;
+        this.workingHours = workingHours;
+        return workingHours;
     }
 
     async confirmTimeOverwrite(ctx, time) {
-        let minutes = "" + new Date(this.validatedTime).getMinutes();
+        let minutes = new Date(this.validatedTime).getMinutes().toString();
         if (minutes.length === 1) {
-            minutes = "0" + minutes;
+            minutes = `0${minutes}`;
         }
         this._messagesToDelete = ctx.replyWithHTML(`⚠️ Вы ранее вводили это время: <b>${new Date(time).getHours()}:${minutes}</b>`);
         this._messagesToDelete = await ctx.reply('Перезаписать его или оставить?',
@@ -121,144 +103,8 @@ class Time extends Base {
             });
     }
 
-    _checkHours(date, timeToCompareWith) {
-        return new Promise((resolve, reject) => {
-            // date = введенные часы
-            if (date.getHours() > timeToCompareWith.getHours() && date < finishWork - estTime) {
-                return true;
-            } else {
-                return false;
-            }
-        });
-    }
-
-    // Высчитывает временные рамки, за которые нельзя заходить (с учетом выбранного типа доставки)
-    _calculateTimeLimits(orderDate, workTime, estTime) {
-        // orderDate = ms; estTime = ms; workTime = ms;
-        // return (workTime * 3600000) + estTime + orderDate;
-        return workTime + estTime;
-    }
-
-    // Определяет успеет ли компания сделать и доставить букет
-    _compareTime(targetTime, workingHours) {
-        // targetTime - введенное время, workingHours - временные рамки (начало или конец работы)
-        // usedTime = ms; start = ms; finish = ms; shipping = boolean
-        let { start, finish } = workingHours,
-        startWork = new Date(start),
-            finishWork = new Date(finish),
-            // Относительно медианы будем сравнивать введенноевремя с началом работы, либо с окончанием
-            median = Math.floor((finishWork.getHours() - startWork.getHours()) / 2);
-        let difference = start - targetTime;
-        return new Promise((resolve, reject) => {
-            if (new Date(targetTime).getHours() < new Date(start).getHours() + median) {
-                // Сравниваем с стартом
-                if (start - targetTime <= 0) {
-                    resolve();
-                } else {
-                    reject();
-                }
-
-            } else {
-                // Сравниваем с финишем
-                if (finish - targetTime >= 0) {
-                    resolve();
-                } else {
-                    reject();
-                }
-            }
-        });
-    }
-
-    // Проверяет правильность времени
-    checkTimeRelevance(time) {
-        let date = new Date();
-        date.setHours(time[0]);
-        // time = [часы, минуты]
-        return new Promise((resolve, reject) => {
-            if (date.getHours() > 23 || date.getHours() < 0) {
-                reject(new Error(`⛔ Пожалуйста, введите корректное время!`));
-            } else {
-                resolve(time);
-            }
-        });
-    }
-
-    // Проверяет введенные часы
-    checkTime(timeArray) {
-        let [hours, minutes] = timeArray;
-        let { start, finish } = this.workingHours;
-        const { shipping, orderDate } = order.orderInfo;
-        // По умолчанию стоит 40 мин
-        let estimatedTime = 2400000;
-        const makeErrorMsg = (time) => {
-            return `⛔ К сожалению, мы не успеем сделать букет к указанному вами времени. С учетом выбранного вами способа доставки нам потребуется ${time} минут.\nПожалуйста, укажите другое время, другой способ доставки или другую дату`
-        };
-
-        return new Promise((resolve, reject) => {
-            // Создаем переменную, с которой будем сравнивать начало и конец работы вместе с прибавленным или вычитанным значением необходимого
-            // для создания и доставки букета времени
-            // Формат: ms
-            let usedTime = orderDate + (hours * 3600000) + (minutes * 60000),
-                startWork = new Date(orderDate),
-                finishWork = new Date(orderDate);
-
-            // Была выбрана доставка
-            if (shipping !== false) {
-                // Преобразуем данные о доставке к логическому типу для удобства
-                shipping = true;
-
-                // Требуемое время 90 мин
-                estimatedTime = 5400000;
-                // Записываем время начала и конца работы как полноценную дату для удобства сравнения
-                // start = ms; finish = ms
-
-                // Если в качестве даты заказа был выбран сегодняшний день, тогда устанавливаем текущие часы и минуты как начало работы,
-                // чтоб пользователь не смог заказать букет на время, которое уже прошло
-                if (this._isToday(orderDate) && new Date().getHours() > start) {
-                    start = this._calculateTimeLimits(orderDate, Date.parse(new Date().toString()), estimatedTime);
-                } else {
-                    // StartWork - переменная, хранящая дату вместе со временем начала работы (в качестве года, месяца и дня используются данные из заказа)
-                    startWork.setHours(start);
-                    startWork.setMinutes(0);
-                    start = this._calculateTimeLimits(orderDate, Date.parse(startWork.toString()), estimatedTime);
-                }
-                finishWork.setHours(finish);
-                finishWork.setMinutes(0);
-                // Для финиша (с доставкой) временные рамки не установлены - ограничение стоит по умолчанию: время окончания работы
-                finish = this._calculateTimeLimits(orderDate, Date.parse(finishWork.toString()), 0);
-
-                // После проверки указанного времени либо выдаем положительный результат, либо ошибку характерную для определенного типа доставки
-                this._compareTime(usedTime, { start: start, finish: finish }, shipping).then(() => {
-                    resolve(usedTime);
-                }, () => {
-                    reject(new Error(makeErrorMsg(90)));
-                });
-
-                // Был выбран самовывоз
-            } else {
-                if (this._isToday(orderDate) && new Date().getHours() > start) {
-                    start = this._calculateTimeLimits(orderDate, Date.parse(new Date().toString()), estimatedTime);
-                } else {
-                    startWork.setHours(start);
-                    startWork.setMinutes(0);
-                    start = this._calculateTimeLimits(orderDate, Date.parse(startWork.toString()), estimatedTime);
-                }
-                finishWork.setHours(finish);
-                finishWork.setMinutes(0);
-                // Для финиша (с самовывозом) временные рамки установлены как - 10 минут от конца работы, чтоб клиент успел прийти за букетом
-                finish = this._calculateTimeLimits(orderDate, Date.parse(finishWork.toString()), -600000);
-                // Требуемое время 40 мин
-                this._compareTime(usedTime, { start: start, finish: finish }, shipping).then(() => {
-                    resolve(usedTime);
-                }, () => {
-                    reject(new Error(makeErrorMsg(40)));
-                });
-            }
-        });
-    }
-
     validateTime(ctx, timeString = null) {
-        const { orderDate } = order.orderInfo;
+        const { orderDate, shipping } = order.orderInfo;
         let timeArray = [];
         this.workingHours = this._getWorkingHours(orderDate);
 
@@ -269,8 +115,8 @@ class Time extends Base {
         // Распознаем время в строке и раскидаем на часы и минуты
         this.identifyTime(timeString)
             // Проверим распознанное время на корректность
-            .then(result => this.checkTimeRelevance(result))
-            .then(result => this.checkTime(result))
+            .then(result => this._checkTimeRelevance(result))
+            .then(result => this._checkTime(result, this.workingHours, { orderDate, shipping }))
             .then(async(result) => {
                 let minutes = `${new Date(result).getMinutes()}`;
                 this.time = result;
@@ -284,6 +130,7 @@ class Time extends Base {
             })
             .catch(async(error) => {
                 this._messagesToDelete = await ctx.reply(error.message);
+                this._messagesToDelete = await ctx.reply(error.stack);
             });
     }
 }
@@ -308,7 +155,7 @@ timeValidation.on('callback_query', (ctx) => {
 });
 
 timeValidation.on('message', (ctx) => {
-    if (ctx.updateSubTypes[0] !== 'text') {
+    if (ctx.updateSubTypes[0] === 'text') {
         const messageText = ctx.update.message.text;
         if (messageText.match(/Меню заказа/i)) {
             validateTime.returnToMenu(ctx, 'timeValidation');
