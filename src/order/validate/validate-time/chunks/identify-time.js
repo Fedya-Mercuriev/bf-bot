@@ -9,8 +9,8 @@ function identifyTime(timeString) {
             let timeArray = timeString.split(/[\s/.,:\\-]/);
             // Проверим является ли числом текущая ячейка массива
             timeArray = timeArray.map((item) => {
-                if (isNaN(item)) {
-                    // если тип данных не числовой, то выводим ошибку
+                if (isNaN(item) || item.length > 2) {
+                    // если тип данных не числовой или их длина > 2, то выводим ошибку
                     reject(new Error('⛔️ Пожалуйста, введите корректное время!'));
                 }
                 return +item;
