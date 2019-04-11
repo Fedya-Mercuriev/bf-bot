@@ -1,9 +1,0 @@
-module.exports = class Cart {
-    constructor(options = undefined) {
-        this.options = options;
-    }
-
-    show(ctx) {
-        return ctx.reply("Данный раздел пока в разработке. Вы все увидите, когда Глеб меня доделает");
-    }
-};
