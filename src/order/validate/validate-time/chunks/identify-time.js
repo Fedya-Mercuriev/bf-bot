@@ -18,7 +18,7 @@ function identifyTime(timeString) {
             const [hours, minutes] = timeArray;
             result.hours = hours;
             result.minutes = minutes;
-            resolve(timeArray);
+            resolve(result);
         } else {
             reject(new Error('⛔️ Пожалуйста, введите корректное время!'));
         }

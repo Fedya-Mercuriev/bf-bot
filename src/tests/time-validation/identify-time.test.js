@@ -7,15 +7,16 @@ describe('Testing time identification', () => {
     beforeEach(() => {
         counter = 0;
     });
-    test.each(['21 05', '21:00', '2,05', '3/5', '55 55', '00.666'])
-        ('(Given string -> (\'%s\')) Returns an array with hour & minute values', (timeString) => {
-            let expectedResult = timeString.split(/[\s/.,:\\-]/);
-            expectedResult = expectedResult.map((item) => {
-                return +item;
-            })
+    test.each(['21 05', '21:00', '2,05', '3/5', '55 55'])
+        ('(Given string -> (\'%s\')) Returns an object with hour & minute values', (timeString) => {
+            let timeArr = timeString.split(/[\s/.,:\\-]/);
+            let result = {};
+            const [hours, minutes] = timeArr;
+            result.hours = +hours;
+            result.minutes = +minutes;
             return identifyTime(timeString)
                 .then((identificationResult) => {
-                    expect(identificationResult).toEqual(expectedResult);
+                    expect(identificationResult).toEqual(result);
                 });
         });
     test.each(['aa 66', '12-a6', 'a,06', '7a/XX', 's6.00'])
@@ -37,7 +38,7 @@ describe('Testing time identification', () => {
                 expect(error.message).toMatch('⛔️ Пожалуйста, введите корректное время!');
             });
         });
-    test.only.each(['-24.00', '-4.00', '-1.00', '-10.00'])
+    test.each(['-24.00', '-4.00', '-1.00', '-10.00'])
         ('(Given string -> (\'%s\')) throws an error if given hour is less than 0',
             (timeString) => {
                 return identifyTime(timeString)
