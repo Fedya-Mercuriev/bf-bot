@@ -21,7 +21,7 @@ class Time extends Base {
     constructor() {
         super();
         this.today = new Date();
-        this.validatedTime = undefined;
+        this.tempTime = null;
         this.workingHours = {};
         this.identifyTime = identifyTime;
         this._checkTime = checkTime;
@@ -105,13 +105,12 @@ class Time extends Base {
 
     validateTime(ctx, timeString = null) {
         const { orderDate, shipping } = order.orderInfo;
-        let timeArray = [];
         this.workingHours = this._getWorkingHours(orderDate);
 
-        // if (this.today.getDate() === new Date(orderDate).getDate() && this.today.getMonth() === new Date(orderDate).getFullYear() && this.today.getMonth() === new Date(orderDate).getFullYear()) {
-        //     console.log("• Выбранная дата: сегодня •");
-        //     this.workingHours.start = new Date().getHours();
-        // }
+        // Если время ранее было проверено и было введено новое – удаляем старое
+        if (this.tempTime) {
+            this._removeConfirmationMessages(ctx);
+        }
         // Распознаем время в строке и раскидаем на часы и минуты
         this.identifyTime(timeString)
             // Проверим распознанное время на корректность
@@ -119,7 +118,7 @@ class Time extends Base {
             .then(result => this._checkTime(result, this.workingHours, { orderDate, shipping }))
             .then(async(result) => {
                 let minutes = `${new Date(result).getMinutes()}`;
-                this.time = result;
+                this.tempTime = result;
                 if (minutes.length === 1) {
                     minutes = `0${minutes}`;
                 }
@@ -130,7 +129,6 @@ class Time extends Base {
             })
             .catch(async(error) => {
                 this._messagesToDelete = await ctx.reply(error.message);
-                this._messagesToDelete = await ctx.reply(error.stack);
             });
     }
 }
