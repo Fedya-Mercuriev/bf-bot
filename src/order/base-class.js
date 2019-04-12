@@ -110,11 +110,12 @@ class Base {
     }
 
     async _requestContinue(ctx, additionalMsg, propNameToAccessParameters) {
-        // const callbackArguments = propNameToAccessParameters.join(':');
         this._confirmationMessages = await ctx.reply(`Нажмите на кнопку ниже, чтобы продолжить заказ букета или ${additionalMsg}`,
             Markup.inlineKeyboard([
                 Markup.callbackButton('Продолжить', `_saveAndExit:${propNameToAccessParameters}`),
-            ]).extra());
+            ]).extra({
+                disable_notification: true,
+            }));
     }
 
     returnToMenu(ctx, sceneName) {
@@ -128,8 +129,8 @@ class Base {
         ctx.scene.leave(sceneName);
     }
 
-    displayPhoneNumber(ctx) {
-        return Contacts.showPhoneNumber(ctx);
+    async displayPhoneNumber(ctx) {
+        this._messagesToDelete = await Contacts.showPhoneNumber(ctx);
     }
 
     async cancelOrder(ctx) {
