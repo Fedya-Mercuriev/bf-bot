@@ -2,41 +2,70 @@
 const { calculateTimeLimits } = require('./../../order/validate/validate-time/chunks/check-time');
 
 describe('Testing time-limits calculation', () => {
-    const estimatedTime = 2400000;
     test.each([{
-            limitType: 'start',
-            time: new Date(2019, 1, 10, 10),
+            args: {
+                limitType: 'start',
+                time: new Date(2019, 1, 1, 10, 10),
+            },
+            toEqual: new Date(2019, 1, 1, 10, 50),
         }, {
-            limitType: 'start',
-            time: new Date(2019, 1, 10, 15),
+            args: {
+                limitType: 'start',
+                time: new Date(2019, 1, 1, 10, 15),
+            },
+            toEqual: new Date(2019, 1, 1, 10, 55),
         }, {
-            limitType: 'start',
-            time: new Date(2019, 1, 10, 9),
+            args: {
+                limitType: 'start',
+                time: new Date(2019, 1, 1, 10, 9),
+            },
+            toEqual: new Date(2019, 1, 1, 10, 49),
         }, {
-            limitType: 'start',
-            time: new Date(2019, 1, 10, 16),
+            args: {
+                limitType: 'start',
+                time: new Date(2019, 1, 1, 10, 16),
+            },
+            toEqual: new Date(2019, 1, 1, 10, 56),
         }])
         ('(Given object -> (\'%o\'))Returns start-limit (greater than given time in estimated time)',
             (limitConfig) => {
-                limitConfig.time = Date.parse(limitConfig.time.toString());
-                expect(calculateTimeLimits(limitConfig, estimatedTime) - limitConfig.time).toEqual(estimatedTime);
+                const estimatedTime = 2400000;
+                let { args, toEqual } = limitConfig;
+                args.time = Date.parse(args.time.toString());
+                toEqual = Date.parse(toEqual.toString());
+                expect(calculateTimeLimits(args, estimatedTime)).toEqual(toEqual);
             });
     test.only.each([{
-            limitType: 'finish',
-            time: new Date(2019, 1, 10, 10),
+            args: {
+                limitType: 'finish',
+                time: new Date(2019, 1, 1, 10, 10),
+            },
+            toEqual: new Date(2019, 1, 1, 10, 0),
         }, {
-            limitType: 'finish',
-            time: new Date(2019, 1, 10, 15),
+            args: {
+                limitType: 'finish',
+                time: new Date(2019, 1, 1, 10, 15),
+            },
+            toEqual: new Date(2019, 1, 1, 10, 5),
         }, {
-            limitType: 'finish',
-            time: new Date(2019, 1, 10, 9),
+            args: {
+                limitType: 'finish',
+                time: new Date(2019, 1, 1, 19, 0),
+            },
+            toEqual: new Date(2019, 1, 1, 18, 50),
         }, {
-            limitType: 'finish',
-            time: new Date(2019, 1, 10, 16),
+            args: {
+                limitType: 'finish',
+                time: new Date(2019, 1, 1, 20, 0),
+            },
+            toEqual: new Date(2019, 1, 1, 19, 50),
         }])
         ('(Given object -> (\'%o\'))Returns finish-limit (less than given time in estimated time)',
             (limitConfig) => {
-                limitConfig.time = Date.parse(limitConfig.time.toString());
-                expect(calculateTimeLimits(limitConfig, estimatedTime) + estimatedTime).toEqual(limitConfig.time);
+                const estimatedTime = 600000;
+                let { args, toEqual } = limitConfig;
+                args.time = Date.parse(args.time.toString());
+                toEqual = Date.parse(toEqual.toString());
+                expect(calculateTimeLimits(args, estimatedTime)).toEqual(toEqual);
             });
 });
