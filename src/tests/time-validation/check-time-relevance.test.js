@@ -5,15 +5,32 @@ const identifyTime = require('./../../order/validate/validate-time/chunks/identi
 const checkTimeRelevance = require('./../../order/validate/validate-time/chunks/check-time-relevance');
 
 describe('Testing time-relevance check', () => {
-    test.each(['24, 00', '25, 00', '246, 00', '2412, 00'])
-        ('(Given string -> (\'%s\')) Throws an error if hour in given strign is greater tahn 23',
-            (timeString) => {
-                return identifyTime(timeString)
-                    .then((identifiedTime) => {
-                        return checkTimeRelevance(identifiedTime);
-                    })
+    test.each([
+            { hours: 24, minutes: 0 },
+            { hours: 35, minutes: 0 },
+            { hours: 60, minutes: 0 },
+            { hours: 32, minutes: 0 },
+        ])
+        ('(Given string -> (\'%o\')) Throws an error if hour in given string is greater than 23',
+            (timeObj) => {
+                return checkTimeRelevance(timeObj)
                     .catch((e) => {
-                        expect(e.message).toMatch('⛔️ Пожалуйста, введите корректное время!');
+                        const { message } = e;
+                        expect(message).toMatch('введите корректное время!');
+                    });
+            });
+
+    test.each([{ hours: 24, minutes: 0 },
+            { hours: 12, minutes: 60 },
+            { hours: 11, minutes: 70 },
+            { hours: 18, minutes: 99 },
+        ])
+        ('(Given string -> (\'%o\')) Throws an error if minute in given string is greater than 59',
+            (timeObj) => {
+                return checkTimeRelevance(timeObj)
+                    .catch((e) => {
+                        const { message } = e;
+                        expect(message).toMatch('введите корректное время!');
                     });
             });
 });
