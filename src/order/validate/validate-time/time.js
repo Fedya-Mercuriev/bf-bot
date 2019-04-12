@@ -28,7 +28,7 @@ class Time extends Base {
         this._checkTimeRelevance = checkTimeRelevance;
         this.saveDataKeysArr = {
             keyToAssignData: 'orderTime',
-            keyToAccessData: 'time',
+            keyToAccessData: 'tempTime',
             notificationMsg: 'Сохраняю выбранное время',
             sceneName: 'timeValidation',
         };
@@ -67,15 +67,15 @@ class Time extends Base {
     }
 
     async confirmTimeOverwrite(ctx, time) {
-        let minutes = new Date(this.validatedTime).getMinutes().toString();
+        let minutes = new Date(time).getMinutes().toString();
         if (minutes.length === 1) {
             minutes = `0${minutes}`;
         }
-        this._messagesToDelete = ctx.replyWithHTML(`⚠️ Вы ранее вводили это время: <b>${new Date(time).getHours()}:${minutes}</b>`);
+        this._messagesToDelete = await ctx.replyWithHTML(`⚠️ Вы ранее вводили это время: <b>${new Date(time).getHours()}:${minutes}</b>`);
         this._messagesToDelete = await ctx.reply('Перезаписать его или оставить?',
             Markup.inlineKeyboard([
-                [Markup.callbackButton('Перезаписать', 'overwriteData')],
-                [Markup.callbackButton('Оставить', 'leaveData')],
+                [Markup.callbackButton('Перезаписать', '_overwriteData:requestTime')],
+                [Markup.callbackButton('Оставить', '_leaveData:timeValidation')],
             ]).extra());
     }
 
@@ -108,7 +108,7 @@ class Time extends Base {
         this.workingHours = this._getWorkingHours(orderDate);
 
         // Если время ранее было проверено и было введено новое – удаляем старое
-        if (this.tempTime) {
+        if (this._confirmationMessages.length !== 0) {
             this._removeConfirmationMessages(ctx);
         }
         // Распознаем время в строке и раскидаем на часы и минуты
@@ -122,8 +122,12 @@ class Time extends Base {
                 if (minutes.length === 1) {
                     minutes = `0${minutes}`;
                 }
-                this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${new Date(result).getHours()}:${minutes}`)
-                this._confirmationMessages = this._requestContinue(ctx, 'введите другое время');
+                if (shipping) {
+                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов и доставлен к ${new Date(result).getHours()}:${minutes}`)
+                } else {
+                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${new Date(result).getHours()}:${minutes}`)
+                }
+                this._requestContinue(ctx, 'введите другое время', 'saveDataKeysArr');
             }, async(error) => {
                 this._messagesToDelete = await ctx.reply(error.message);
             })
