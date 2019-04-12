@@ -43,7 +43,8 @@ class Base {
         if (passedArgs.indexOf(':') !== -1) {
             // В первой ячейке должно лежать имя функции, которая будет вызвана
             const args = passedArgs.split(':');
-            return this[args.splice(0, 1)](ctx, args);
+            const funcName = args.splice(0, 1);
+            return this[funcName](ctx, ...args);
         }
         const funcName = passedArgs;
         return this[funcName](ctx);
