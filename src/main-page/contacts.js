@@ -41,7 +41,7 @@ class Contacts {
     }
 
     showPhoneNumber(ctx) {
-        ctx.telegram.sendContact(ctx.chat.id, this.contactInfo.num,
+        return ctx.telegram.sendContact(ctx.chat.id, this.contactInfo.num,
             this.contactInfo.firstName, this.contactInfo.lastName, false);
     }
 
