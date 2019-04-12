@@ -99,10 +99,12 @@ function checkTime(timeObj, workingHours, requiredOrderInfo) {
                 // В противном случае устанавливаем как начало работы 8 утра, а конец – 10 вечера
                 startWork.setHours(8);
                 startWork.setMinutes(0);
+                startWork.setSeconds(0);
                 startLimit = Date.parse(startWork.toString());
             }
             finishWork.setHours(22);
             finishWork.setMinutes(0);
+            startWork.setSeconds(0);
             finishLimit = Date.parse(finishWork.toString());
             timeLimits = { startLimit, finishLimit };
             // Был выбран самовывоз
@@ -112,14 +114,17 @@ function checkTime(timeObj, workingHours, requiredOrderInfo) {
                 // Если дата заказа – сегодня, тогда в качестве времени начала работы
                 // установим текущий час, чтобы пользователь не смог заказать букет на время,
                 // которое уже прошло
+                const now = new Date();
+                now.setSeconds(0);
                 startLimit = calculateTimeLimits({
                     limitType: 'start',
-                    time: Date.parse(startWork.toString()),
+                    time: Date.parse(now.toString()),
                 }, estimatedTime);
             } else {
                 // Установим время начала работы, взяв часы работы из предоставленного расписания
                 startWork.setHours(start);
                 startWork.setMinutes(0);
+                startWork.setSeconds(0);
                 startLimit = calculateTimeLimits({
                     limitType: 'start',
                     time: Date.parse(startWork.toString()),
@@ -127,12 +132,11 @@ function checkTime(timeObj, workingHours, requiredOrderInfo) {
             }
             finishWork.setHours(finish);
             finishWork.setMinutes(0);
-            // Для финиша (с самовывозом) временные рамки установлены как - 10 минут
-            // от конца работы, чтоб клиент успел прийти за букетом
+            startWork.setSeconds(0);
             finishLimit = calculateTimeLimits({
                 limitType: 'finish',
                 time: Date.parse(finishWork.toString()),
-            }, 600000);
+            }, 0);
             // Требуемое время 40 мин
         }
         timeLimits = { startLimit, finishLimit };
