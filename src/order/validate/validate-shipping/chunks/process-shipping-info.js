@@ -16,11 +16,14 @@ function sendRequest(msg, options) {
             uri += `&sco=latlong&geocode=${latitude},${longitude}&kind=house&results=4`;
         } else {
             // Будем распознавать адрес по ключевым словам
-            const messageData = msgText.split(' ');
+            const messageData = msgText.split(',');
             if (messageData.length < 2) {
-                reject(new Error('⛔️ Пожалуйста, введите адрес в формате "улица дом"'));
+                reject(new Error('⛔️ Пожалуйста, введите адрес в формате "улица,дом"'));
             }
             const [street, house] = messageData;
+            // Если вдруг есть пробелы – удалим их
+            street.replace(' ', '');
+            house.replace(' ', '');
             uri += `&geocode=Россия+${shippingCity},+${street}+${house}`;
         }
         uri = encodeURI(uri);
@@ -71,7 +74,7 @@ function processResponse(response, shippingCity) {
         if (addresses.length) {
             resolve(addresses);
         } else {
-            reject(new Error('⛔️ ️️К сожалению, мне не удалось ничего найти по введенному вами адресу.\nПожалуйста, введите другой адрес'));
+            reject(new Error('⛔️ ️️К сожалению, мне не удалось ничего найти по введенному вами адресу или мы не сможем доставить букет в ваш населенный пункт.\nПожалуйста, введите другой адрес'));
         }
     });
 }
