@@ -60,12 +60,14 @@ class Shipping extends Base {
 
     async _requestAddress(ctx) {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '✍️ Достаю ручку и блокнот...');
+        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
         this.shippingInfoProcessingStarted = true;
         this._messagesToDelete = await ctx.reply('Введите адрес вручную в формате "улица, дом" или отправьте мне геопозицию');
     }
 
     async _processPickUpQuery(ctx) {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Минуточку');
+        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
         this.shipping = false;
         this._confirmationMessages = await ctx.replyWithHTML('Вы выбрали самовывоз.\n📍 Адрес магазина: <b>Фрунзе проспект, 46</b>');
         this._requestContinue(
@@ -100,6 +102,10 @@ class Shipping extends Base {
             uri: `https://geocode-maps.yandex.ru/1.x/?apikey=${process.env.MAPS_API_KEY}&format=json`,
             shippingCity,
         };
+        if (!this.shippingInfoProcessingStarted) {
+            this._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, сперва выберите как будете забирать букет!');
+            return;
+        }
         // Если раньше уже вводился адрес были отображены кнопки для его сохранения – удалим их
         if (this.addressButtons.length) {
             this._removeMessages(ctx, 'addressButtons');
@@ -251,15 +257,23 @@ shippingValidation.enter((ctx) => {
 });
 
 shippingValidation.on('callback_query', (ctx) => {
-    validateShipping.invokeFunction(ctx.update.callback_query.data, ctx);
+    try {
+        validateShipping.invokeFunction(ctx.update.callback_query.data, ctx);
+    } catch (error) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⛔ Cейчас эта кнопка не доступна!');
+    }
 });
 
 shippingValidation.on('message', async(ctx) => {
     if (ctx.updateSubTypes.indexOf('text') !== -1 || ctx.updateSubTypes.indexOf('location') !== -1) {
-        if (validateShipping.shippingInfoProcessingStarted) {
-            validateShipping.validateShippingInfo(ctx, order.city);
+        if (ctx.update.message.text.match(/меню заказа/i)) {
+            validateShipping.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
+        } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
+            validateShipping.displayPhoneNumber(ctx);
+        } else if (ctx.update.message.text.match(/отменить заказ/i)) {
+            ctx.reply('Отменяем заказ (пока нет)');
         } else {
-            validateShipping._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, сперва выберите как будете забирать букет!');
+            validateShipping.validateShippingInfo(ctx, order.city);
         }
     } else {
         validateShipping._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, напишите адрес или отправьте геопозицию!');
