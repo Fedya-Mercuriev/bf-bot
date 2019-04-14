@@ -145,7 +145,7 @@ class Base {
     }
 
     async _requestContinue(ctx, additionalMsg, propNameToAccessParameters, customButtonsSet) {
-        // customButtonsSet – массив с объектами дополнительных кнопок (кнопка "Продолжить" остается)
+        // customButtonsSet – массив с объектами/объект дополнительных кнопок (кнопка "Продолжить" остается)
         const buttonsArr = [
             Markup.callbackButton('Продолжить', `_saveAndExit:${propNameToAccessParameters}`),
         ];
@@ -153,12 +153,21 @@ class Base {
             // Если был передан набор дополнительных кнопок, перепишем первую кнопку там,
             // чтоб далее кнопки шли друг за другом
             buttonsArr[0] = [Markup.callbackButton('Продолжить', `_saveAndExit:${propNameToAccessParameters}`)];
-            customButtonsSet.forEach((button) => {
-                const { text, functionName } = button;
+            // Выполняется если был передан объект
+            if (!customButtonsSet.length) {
+                const { text, functionName } = customButtonsSet;
                 buttonsArr.push([
                     Markup.callbackButton(text, `${functionName}`),
                 ]);
-            });
+                // Выполняется если был передан массив
+            } else {
+                customButtonsSet.forEach((button) => {
+                    const { text, functionName } = button;
+                    buttonsArr.push([
+                        Markup.callbackButton(text, `${functionName}`),
+                    ]);
+                });
+            }
         }
         this._confirmationMessages = await ctx.reply(`Нажмите на кнопку ниже, чтобы продолжить заказ букета или ${additionalMsg}`,
             Markup.inlineKeyboard(buttonsArr).extra({
