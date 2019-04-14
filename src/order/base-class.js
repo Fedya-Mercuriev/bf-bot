@@ -3,7 +3,7 @@
 /* eslint-disable no-underscore-dangle */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-const order = require('../../core');
+const { order } = require('../../core');
 const Contacts = require('../main-page/contacts');
 
 class Base {
@@ -11,6 +11,7 @@ class Base {
     constructor() {
         this._botSentMessages = [];
         this._saveDataMsg = [];
+        this._statusMessages = [];
     }
 
     get _messagesToDelete() {
@@ -39,6 +40,19 @@ class Base {
         }
     }
 
+    get _statusMsg() {
+        return this._statusMessages;
+    }
+
+    set _statusMsg(message) {
+        if (message === 'clearArr') {
+            this._statusMessages.length = 0;
+        } else {
+            const { message_id: id } = message;
+            this._statusMessages.push(id);
+        }
+    }
+
     invokeFunction(passedArgs, ctx) {
         if (passedArgs.indexOf(':') !== -1) {
             // В первой ячейке должно лежать имя функции, которая будет вызвана
@@ -50,6 +64,17 @@ class Base {
         return this[funcName](ctx);
     }
 
+    _removeMessages(ctx, propName) {
+        this[propName].forEach((id) => {
+            try {
+                ctx.deleteMessage(id);
+            } catch (e) {
+                console.log(e.message);
+            }
+        });
+        this[propName] = 'clearArr';
+    }
+
     _removeConfirmationMessages(ctx) {
         this._confirmationMessages.forEach((id) => {
             try {
@@ -59,6 +84,16 @@ class Base {
             }
         });
         this._confirmationMessages = 'clearArr';
+    }
+
+    _removeStatusMessages(ctx) {
+        this._statusMessages.forEach((id) => {
+            try {
+                ctx.deleteMessage(id);
+            } catch (error) {
+                console.log(error);
+            }
+        });
     }
 
     _saveAndExit(ctx, optionsArrName) {
@@ -109,11 +144,24 @@ class Base {
         this._messagesToDelete = 'clearArr';
     }
 
-    async _requestContinue(ctx, additionalMsg, propNameToAccessParameters) {
+    async _requestContinue(ctx, additionalMsg, propNameToAccessParameters, customButtonsSet) {
+        // customButtonsSet – массив с объектами дополнительных кнопок (кнопка "Продолжить" остается)
+        const buttonsArr = [
+            Markup.callbackButton('Продолжить', `_saveAndExit:${propNameToAccessParameters}`),
+        ];
+        if (customButtonsSet) {
+            // Если был передан набор дополнительных кнопок, перепишем первую кнопку там,
+            // чтоб далее кнопки шли друг за другом
+            buttonsArr[0] = [Markup.callbackButton('Продолжить', `_saveAndExit:${propNameToAccessParameters}`)];
+            customButtonsSet.forEach((button) => {
+                const { text, functionName } = button;
+                buttonsArr.push([
+                    Markup.callbackButton(text, `${functionName}`),
+                ]);
+            });
+        }
         this._confirmationMessages = await ctx.reply(`Нажмите на кнопку ниже, чтобы продолжить заказ букета или ${additionalMsg}`,
-            Markup.inlineKeyboard([
-                Markup.callbackButton('Продолжить', `_saveAndExit:${propNameToAccessParameters}`),
-            ]).extra({
+            Markup.inlineKeyboard(buttonsArr).extra({
                 disable_notification: true,
             }));
     }
