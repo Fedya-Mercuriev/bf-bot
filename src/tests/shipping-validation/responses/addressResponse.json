@@ -1,0 +1,100 @@
+{
+    "response": {
+        "GeoObjectCollection": {
+            "metaDataProperty": {
+                "GeocoderResponseMetaData": {
+                    "request": "россия томск, говорова 46",
+                    "found": "1",
+                    "results": "4",
+                    "boundedBy": {
+                        "Envelope": {
+                            "lowerCorner": "-0.002497 -0.002496",
+                            "upperCorner": "0.002497 0.002496"
+                        }
+                    }
+                }
+            },
+            "featureMember": [{
+                "GeoObject": {
+                    "metaDataProperty": {
+                        "GeocoderMetaData": {
+                            "kind": "house",
+                            "text": "Россия, Томск, улица Говорова, 46",
+                            "precision": "exact",
+                            "Address": {
+                                "country_code": "RU",
+                                "postal_code": "634057",
+                                "formatted": "Россия, Томск, улица Говорова, 46",
+                                "Components": [{
+                                        "kind": "country",
+                                        "name": "Россия"
+                                    },
+                                    {
+                                        "kind": "province",
+                                        "name": "Сибирский федеральный округ"
+                                    },
+                                    {
+                                        "kind": "province",
+                                        "name": "Томская область"
+                                    },
+                                    {
+                                        "kind": "area",
+                                        "name": "городской округ Томск"
+                                    },
+                                    {
+                                        "kind": "locality",
+                                        "name": "Томск"
+                                    },
+                                    {
+                                        "kind": "street",
+                                        "name": "улица Говорова"
+                                    },
+                                    {
+                                        "kind": "house",
+                                        "name": "46"
+                                    }
+                                ]
+                            },
+                            "AddressDetails": {
+                                "Country": {
+                                    "AddressLine": "Россия, Томск, улица Говорова, 46",
+                                    "CountryNameCode": "RU",
+                                    "CountryName": "Россия",
+                                    "AdministrativeArea": {
+                                        "AdministrativeAreaName": "Томская область",
+                                        "SubAdministrativeArea": {
+                                            "SubAdministrativeAreaName": "городской округ Томск",
+                                            "Locality": {
+                                                "LocalityName": "Томск",
+                                                "Thoroughfare": {
+                                                    "ThoroughfareName": "улица Говорова",
+                                                    "Premise": {
+                                                        "PremiseNumber": "46",
+                                                        "PostalCode": {
+                                                            "PostalCodeNumber": "634057"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "description": "Томск, Россия",
+                    "name": "улица Говорова, 46",
+                    "boundedBy": {
+                        "Envelope": {
+                            "lowerCorner": "84.980383 56.508018",
+                            "upperCorner": "84.988594 56.512558"
+                        }
+                    },
+                    "Point": {
+                        "pos": "84.984489 56.510288"
+                    }
+                }
+            }]
+        }
+    }
+}
