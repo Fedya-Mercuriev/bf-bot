@@ -1,150 +1,214 @@
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable indent */
+/* eslint-disable import/newline-after-import */
 /* eslint-disable class-methods-use-this */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
-const Contacts = require("../../../main-page/contacts");
+const request = require('request-promise');
+const Base = require('./../../base-class');
 const { leave } = Stage;
-const order = require('../../../../core');
-const ServiceOps = require('../../../service-ops');
+const { order, citiesList } = require('../../../../core');
 
 const shippingValidation = new Scene('shippingValidation');
 
-class Shipping {
+class Shipping extends Base {
     constructor() {
+        super();
         this.shipping = undefined;
+        // this.requestUrlBody = `geocode-maps.yandex.ru/1.x/?apikey=${mapsApiToken}&format=json`;
+        // this.requestBody = 'https://geocode-maps.yandex.ru/1.x/';
+        this.requestOptions = {
+            uri: `https://geocode-maps.yandex.ru/1.x/?apikey=${process.env.MAPS_API_KEY}&format=json`,
+            json: true,
+        };
+        this.city = null;
+        this.shippingInfoProcessingStarted = false;
+        this.saveDataKeysArr = {
+            keyToAssignData: 'shipping',
+            keyToAccessData: 'shipping',
+            notificationMsg: 'Сохраняю выбранный способ доставки',
+            sceneName: 'shippingValidation',
+        };
+        this.leaveDataInfo = 'shippingValidation';
+        this.overwriteDataInfo = 'requestShippingInfo';
     }
 
-    requestShipping(ctx) {
-        ctx.reply("Выберите как будете забирать букет 👇",
+    async requestShipping(ctx) {
+        this._messagesToDelete = await ctx.reply('Выберите как будете забирать букет 👇',
             Markup.inlineKeyboard([
-                [Markup.callbackButton('📦 Самовывоз', 'самовывоз')],
-                [Markup.callbackButton('🛵 Доставка', 'доставка')],
+                [Markup.callbackButton('📦 Самовывоз', '_processPickUpQuery')],
+                [Markup.callbackButton('🛵 Доставка', '_requestShippingInfo')],
             ]).extra(),
         );
     }
 
-    confirmShippingOverwrite(ctx, shipping) {
+    async _requestShippingInfo(ctx) {
+        ctx.answerCbQuery(ctx.update.callback_query.id, '✍️ Достаю ручку и блокнот...');
+        this.shippingInfoProcessingStarted = true;
+        this._messagesToDelete = await ctx.reply('Введите адрес вручную в формате "улица дом" или отправьте мне геопозицию');
+    }
+
+    async _processPickUpQuery(ctx) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Минуточку');
+        this.shipping = false;
+        this._confirmationMessages = await ctx.replyWithHTML('Вы выбрали самовывоз.\n📍 <b>Адрес магазина:</b> Фрунзе проспект, 46');
+        this._requestContinue(ctx, 'выберите другой способ оставки', 'saveDataKeysArr');
+    }
+
+    async processShippingInfo(ctx) {
+        const { json } = this.requestOptions;
+        let { uri } = this.requestOptions;
+        // Распознаем тип данных (текст или локация)
+        if (ctx.updateSubTypes.indexOf('location') !== -1) {
+            // Будем распознавать адреес по координатам
+            const { latitude, longitude } = ctx.update.message.location;
+            uri += `&sco=latlong&geocode=${latitude},${longitude}&kind=house&results=4`;
+            console.log(uri);
+        } else {
+            // Будем распознавать адрес по ключевым словам
+            const messageData = ctx.update.message.text.split(' ');
+            if (messageData.length < 2) {
+                this._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, введите адрес в формате "улица дом"');
+                return;
+            }
+            const [street, house] = messageData;
+            uri += `&geocode=россия+${this.shippingCity},+${street}+${house}&kind=house&results=4`;
+        }
+        console.log(uri);
+        uri = encodeURI(uri);
+        const options = { uri, json };
+        this._statusMsg = await ctx.reply('Проверяю адрес...');
+        request(options)
+            .then((response) => {
+                console.log(response);
+                this._removeMessages(ctx, this._statusMsg);
+                this._processResponse(ctx, response);
+            })
+            .catch(async(err) => {
+                this._removeMessages(ctx, this._statusMsg);
+                this._statusMsg = await ctx.reply('⛔️ Упс! Что-то пошло не так. Попробуйте еще раз.');
+                console.log(err.message);
+            });
+    }
+
+    validateShippingInfo(ctx) {
+
+    }
+
+    _setShippingInfo(ctx, address) {
+
+    }
+
+    async _processResponse(ctx, responseObj) {
+        const results = responseObj.response.GeoObjectCollection.featureMember;
+        if (results.length > 0) {
+            console.log(results);
+        } else {
+            this._messagesToDelete = await ctx.reply('⛔️ К сожалению, мне не удалось ничего найти по введенному вами адресу.\n Пожалуйста, попробуйте другой адрес');
+        }
+    }
+
+    _setShippingCity(ctx, city) {
+        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+        order.city = city;
+        this.shippingCity = city;
+        this.requestShipping(ctx);
+    }
+
+    async displayCitiesList(ctx) {
+        // Эта функция вызывается если магазин функционирует в нескольких городах
+        // и пользователю нужно выбрать свой город
+        const cities = citiesList.map(item => [Markup.callbackButton(item, `_setShippingCity:${item}`)]);
+        this._messagesToDelete = await ctx.reply('Выберите ваш город', Markup.inlineKeyboard(cities).extra());
+    }
+
+    async confirmShippingOverwrite(ctx, shipping) {
         // Если был выбран самовывоз или указан адрес в виде строки
         if (shipping === false || typeof shipping !== 'object') {
-            shipping = (shipping === false) ? "Самовывоз" : `(Доставка) ${shipping}`;
-            ctx.replyWithHTML(`⚠️ Вы ранее выбрали этот способ доставки: <b>${shipping}</b>`).then(() => {
-                return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
-                    [Markup.callbackButton('Перезаписать', 'overwriteData')],
-                    [Markup.callbackButton('Оставить', 'leaveData')]
-                ]).extra());
-            });
-
+            shipping = (shipping === false) ? 'Самовывоз' : `(Доставка) ${shipping}`;
+            this._messagesToDelete = await ctx.replyWithHTML(`⚠️ Вы ранее выбрали этот способ доставки: <b>${shipping}</b>`);
+            this._messagesToDelete = await ctx.reply('Перезаписать его или оставить?',
+                Markup.inlineKeyboard([
+                    [Markup.callbackButton('Перезаписать', '_overwriteData:requestShipping')],
+                    [Markup.callbackButton('Оставить', '_leaveData:shippingValidation')],
+                ]).extra({
+                    disable_notification: true,
+                }));
             // Если была отправлена геопозиция
         } else {
-            let [lat, lon] = shipping;
-            ctx.reply(`⚠️ Вы ранее выбрали этот способ доставки:`).then(() => {
-                return ctx.replyWithLocation(lat, lon);
-            }).then(() => {
-                return ctx.reply("Перезаписать его или оставить?", Markup.inlineKeyboard([
-                    [Markup.callbackButton('Перезаписать', 'overwriteData')],
-                    [Markup.callbackButton('Оставить', 'leaveData')]
-                ]).extra());
-            });
-            console.log(shipping);
+            const [lat, lon] = shipping;
+            this._messagesToDelete = await ctx.reply('⚠️ Вы ранее выбрали этот способ доставки:');
+            this._messagesToDelete = await ctx.replyWithLocation(lat, lon);
+            this._messagesToDelete = await ctx.reply('Перезаписать его или оставить?', Markup.inlineKeyboard([
+                [Markup.callbackButton('Перезаписать', '_overwriteData:requestShipping')],
+                [Markup.callbackButton('Оставить', '_leaveData:shippingValidation')],
+            ]).extra({
+                disable_notification: true,
+            }));
         }
     }
 
-    requestShippingInfo(ctx) {
-        ctx.reply('Введите адрес вручную или отправьте мне геопозицию');
-    }
-
-    returnShippingInfoForConfirmation(ctx) {
-        if (typeof this.shipping === 'string') {
-            ctx.reply(`🗺 Вы ввели этот адрес: ${this.shipping}`);
-        } else {
-            let [latitude, longitude] = this.shipping;
-            ctx.reply("Вы отправили эту геопозицию:");
-            ctx.replyWithLocation(ctx.chat.id, latitude, longitude);
-        }
-    }
+    returnShippingInfoForConfirmation(ctx) {}
 
     get shippingInfo() {
         return this.shipping;
     }
 
-    set shippingInfo(address) {
-        this.shipping = address;
+    get shippingCity() {
+        return this.city;
     }
-};
+
+    set shippingCity(city) {
+        this.city = city;
+    }
+}
 
 const validateShipping = new Shipping();
 
 shippingValidation.enter((ctx) => {
-    let { shipping } = order.orderInfo;
+    const { shipping } = order.orderInfo;
 
-    if (shipping !== undefined) {
-        validateShipping.confirmShippingOverwrite(ctx, shipping);
+    if (!order.city && typeof citiesList === 'object') {
+        // Если способ доставки выбирается впервые, а также магазин функционирует
+        // в нескольких городах - выводится список городов
+        validateShipping.displayCitiesList(ctx);
+    } else if (!order.city && typeof citiesList === 'string') {
+        // Если способ доставки выбирается впервые, но магазин функционирует лишь
+        // в одном городе - город устанавливается автоматически
+        order.city = citiesList;
+        validateShipping.shippingCity = citiesList;
+        if (shipping !== undefined) {
+            validateShipping.confirmShippingOverwrite(ctx, shipping);
+        } else {
+            validateShipping.requestShipping(ctx);
+        }
     } else {
-        validateShipping.requestShipping(ctx);
+        // Если раньшевыбирался способ доставки выполним этот блок кода
+        if (shipping !== undefined) {
+            validateShipping.confirmShippingOverwrite(ctx, shipping);
+        } else {
+            validateShipping.requestShipping(ctx);
+        }
     }
 });
 
 shippingValidation.on('callback_query', (ctx) => {
-    ctx.answerCbQuery(ctx.update['callback_query'].id, "");
-
-    if (ctx.update['callback_query'].data === 'самовывоз') {
-        validateShipping.shippingInfo = false;
-        ctx.reply(`Вы выбрали: ${ctx.update['callback_query'].data}.\n📍 Наш адрес: Фрунзе проспект, 46`).then(() => {
-            ServiceOps.requestContinue(ctx, "выберите другой способ получения букета");
-        });
-
-    } else if (ctx.update['callback_query'].data === 'доставка') {
-        validateShipping.requestShippingInfo(ctx);
-
-    } else if (ctx.update['callback_query'].data === 'overwriteData') {
-        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, validateShipping.requestShipping.bind(validateShipping));
-
-    } else if (ctx.update['callback_query'].data === 'leaveData') {
-        ServiceOps.processInputData(ctx.update['callback_query'].data, ctx, order.displayInterface.bind(order), 'shippingValidation');
-
-    } else {
-        order.orderInfo = ['shipping', validateShipping.shippingInfo];
-        ctx.telegram.deleteMessage(ctx.update['callback_query'].message.chat.id, ctx.update['callback_query'].message['message_id']);
-        order.displayInterface(ctx);
-        ctx.scene.leave('shippingValidation');
-    }
+    validateShipping.invokeFunction(ctx.update.callback_query.data, ctx);
 });
 
-shippingValidation.on('message', (ctx) => {
-    // Обрабатывает контактные данные
-    if (ctx.updateSubTypes.indexOf('location') !== -1) {
-        validateShipping.shippingInfo = [ctx.update.message.location.latitude, ctx.update.message.location.longitude];
-        let [latitude, longitude] = validateShipping.shippingInfo;
-        ctx.reply("Вот выслали эту геопозицию:");
-        ctx.telegram.sendLocation(ctx.chat.id, latitude, longitude).then(() => {
-                ServiceOps.requestContinue(ctx, "введите другой адрес");
-            })
-            // ctx.reply(`Пожалуйста, проверьте правильность введенной информации.\nЕсли что-то не так, напишите новый адрес или отправьте другую геопозицию`);
-    } else if (ctx.updateSubTypes.indexOf('text') !== -1) {
-        let message = ctx.message.text;
-        // Если была нажата кнопка "меню заказа" или введено аналогичное сообщение
-        if (message.match(/Меню заказа/gi)) {
-            ServiceOps.returnToMenu(ctx, order.displayInterface.bind(order), 'shippingValidation');
-
-        } else if (message.match(/Связаться с магазином/gi)) {
-            ServiceOps.displayPhoneNumber(ctx);
-
-        } else if (message.match(/Отменить заказ/gi)) {
-            order.cancelOrder(ctx);
-
+shippingValidation.on('message', async(ctx) => {
+    if (ctx.updateSubTypes.indexOf('text') !== -1 || ctx.updateSubTypes.indexOf('location') !== -1) {
+        if (validateShipping.shippingInfoProcessingStarted) {
+            validateShipping.processShippingInfo(ctx);
         } else {
-            validateShipping.shippingInfo = (ctx.update.message.text);
-            ctx.reply(`🗺 Вы ввели этот адрес: ${validateShipping.shippingInfo}`).then(() => {
-                ServiceOps.requestContinue(ctx, "введите другой адрес");
-            });
+            validateShipping._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, сперва выберите как будете забирать букет!');
         }
     } else {
-        ctx.reply("⛔️ Пожалуйста, напишите адрес или отправьте геопозицию!");
+        validateShipping._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, напишите адрес или отправьте геопозицию!');
     }
-    console.log(ctx);
 });
 
-module.exports = validateShipping;
 module.exports = shippingValidation;
