@@ -79,4 +79,17 @@ function processResponse(response, shippingCity) {
     });
 }
 
-module.exports = { sendRequest, processResponse };
+function prepareButtons(dataArr) {
+    const result = [];
+    return new Promise((resolve) => {
+        dataArr.forEach((item, index) => {
+            result.push({
+                btnText: item,
+                position: index,
+            });
+        });
+        resolve(result);
+    });
+}
+
+module.exports = { sendRequest, processResponse, prepareButtons };

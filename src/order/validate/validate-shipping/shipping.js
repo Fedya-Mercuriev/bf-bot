@@ -9,7 +9,7 @@ const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const request = require('request-promise');
 const Base = require('./../../base-class');
-const { sendRequest, processResponse } = require('./chunks/process-shipping-info');
+const { sendRequest, processResponse, prepareButtons } = require('./chunks/process-shipping-info');
 const { leave } = Stage;
 const { order, citiesList } = require('../../../../core');
 
@@ -26,6 +26,7 @@ class Shipping extends Base {
         this._addressButtons = [];
         this._sendRequest = sendRequest;
         this._processResponse = processResponse;
+        this._prepareButtons = prepareButtons;
         this.city = null;
         this.shippingInfoProcessingStarted = false;
         this._tempButtonsStorage = [];
@@ -107,8 +108,9 @@ class Shipping extends Base {
             return;
         }
         // Если раньше уже вводился адрес были отображены кнопки для его сохранения – удалим их
-        if (this.addressButtons.length) {
+        if (this.addressButtons.length || this._confirmationMessages.length) {
             this._removeMessages(ctx, 'addressButtons');
+            this._removeConfirmationMessages(ctx);
         }
         this._statusMsg = await ctx.reply('Проверяю адрес...');
         // Распознаем какого типа даннеы и подготовим сообщение
@@ -121,19 +123,26 @@ class Shipping extends Base {
                 return this._processResponse(response, shippingCity);
             })
             // Соберем оставшиеся результаты в кнопки для сохранения адреса
+            .then(dataArr => this._prepareButtons(dataArr))
             .then(async(buttonsArr) => {
-                let buttonCounter = 0;
                 this._tempButtonsStorage.length = 0;
+                // Заранее поместим готовые кнопки в временное хранилище
+                // При клике на кнопку с адресом - информация будет браться именно отсюда
+                buttonsArr.forEach((button) => {
+                    const { btnText } = button;
+                    this._tempButtonsStorage.push(btnText);
+                });
+                // Выведем кнопки на экран
                 this.addressButtons = await ctx.reply('Вот, что мне удалось найти. Выберите свой адрес, кликнув по кнопке под сообщением или введите новый адрес.');
                 buttonsArr.forEach(async(button) => {
-                    this.addressButtons = await ctx.reply(`🏡 ${button}`,
+                    const { btnText, position } = button;
+                    this.addressButtons = await ctx.reply(`🏡 ${btnText}`,
                         Markup.inlineKeyboard([
-                            Markup.callbackButton('Это мой адрес', `_setShippingInfo:${buttonCounter++}`),
+                            Markup.callbackButton('Это мой адрес', `_setShippingInfo:${position}`),
                         ]).extra({
                             disable_notification: true,
                         }),
                     );
-                    this._tempButtonsStorage.push(button);
                 });
             })
             // Что-то пошло не так – выведем сообщение об ошибке
@@ -149,6 +158,10 @@ class Shipping extends Base {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Вывожу выбранный адрес на экран...');
         this.shippingAddress = this._tempButtonsStorage[+buttonIndex];
         this._confirmationMessages = await ctx.replyWithHTML(`Вы выбрали доставку по адресу: <b>${this.shippingAddress}</b>`);
+        if (!ctx.scene.msgToDelete) {
+            ctx.scene.msgToDelete = [];
+        }
+        ctx.scene.msgToDelete = ctx.scene.msgToDelete.concat(this.addressButtons);
         this._requestContinue(
             ctx,
             'введите другой адрес',
@@ -265,9 +278,9 @@ shippingValidation.on('callback_query', (ctx) => {
 });
 
 shippingValidation.on('message', async(ctx) => {
-    if (ctx.updateSubTypes.indexOf('text') !== -1 || ctx.updateSubTypes.indexOf('location') !== -1) {
+    if (ctx.updateSubTypes.indexOf('text') !== -1) {
         if (ctx.update.message.text.match(/меню заказа/i)) {
-            validateShipping.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
+            validateShipping.returnToMenu(ctx, 'shippingValidation');
         } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
             validateShipping.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
@@ -275,6 +288,8 @@ shippingValidation.on('message', async(ctx) => {
         } else {
             validateShipping.validateShippingInfo(ctx, order.city);
         }
+    } else if (ctx.updateSubTypes.indexOf('location') !== -1) {
+        validateShipping.validateShippingInfo(ctx, order.city);
     } else {
         validateShipping._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, напишите адрес или отправьте геопозицию!');
     }
