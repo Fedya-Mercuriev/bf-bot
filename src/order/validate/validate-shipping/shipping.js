@@ -132,17 +132,20 @@ class Shipping extends Base {
                     const { btnText } = button;
                     this._tempButtonsStorage.push(btnText);
                 });
-                // Выведем кнопки на экран
                 this.addressButtons = await ctx.reply('Вот, что мне удалось найти. Выберите свой адрес, кликнув по кнопке под сообщением или введите новый адрес.');
+                // Выведем кнопки на экран
                 buttonsArr.forEach(async(button) => {
                     const { btnText, position } = button;
-                    this.addressButtons = await ctx.reply(`🏡 ${btnText}`,
+                    ctx.reply(`🏡 ${btnText}`,
                         Markup.inlineKeyboard([
                             Markup.callbackButton('Это мой адрес', `_setShippingInfo:${position}`),
                         ]).extra({
                             disable_notification: true,
                         }),
-                    );
+                    ).then((msg) => {
+                        this.addressButtons = msg;
+                        this._messagesToDelete = msg;
+                    });
                 });
             })
             // Что-то пошло не так – выведем сообщение об ошибке
@@ -158,10 +161,6 @@ class Shipping extends Base {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Вывожу выбранный адрес на экран...');
         this.shippingAddress = this._tempButtonsStorage[+buttonIndex];
         this._confirmationMessages = await ctx.replyWithHTML(`Вы выбрали доставку по адресу: <b>${this.shippingAddress}</b>`);
-        if (!ctx.scene.msgToDelete) {
-            ctx.scene.msgToDelete = [];
-        }
-        ctx.scene.msgToDelete = ctx.scene.msgToDelete.concat(this.addressButtons);
         this._requestContinue(
             ctx,
             'введите другой адрес',
