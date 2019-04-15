@@ -158,6 +158,7 @@ class Shipping extends Base {
         if (this._confirmationMessages.length) {
             this._removeMessages(ctx, '_confirmationMessages');
         }
+        this._removeMessages(ctx, 'addressButtons');
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Вывожу выбранный адрес на экран...');
         this.shippingAddress = this._tempButtonsStorage[+buttonIndex];
         this._confirmationMessages = await ctx.replyWithHTML(`Вы выбрали доставку по адресу: <b>${this.shippingAddress}</b>`);
