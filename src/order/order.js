@@ -1,10 +1,20 @@
-const Telegraf = require('telegraf');
-const {Extra, Markup} = Telegraf;
-const Invoice =  require('./invoice');
-// const OrderInfo = require('./order-info');
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable no-prototype-builtins */
 
-module.exports = class Order {
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable class-methods-use-this */
+/* eslint-disable indent */
+const Telegraf = require('telegraf');
+const { Extra, Markup } = Telegraf;
+const session = require('telegraf/session');
+const Scene = require('telegraf/scenes/base');
+const Base = require('./base-class');
+const Invoice = require('./invoice');
+const orderScene = new Scene('orderScene');
+
+class Order extends Base {
     constructor() {
+        super();
         this.info = {
             contactInfo: undefined,
             orderDate: undefined,
@@ -12,9 +22,8 @@ module.exports = class Order {
             bouquet: undefined,
             shipping: undefined,
         };
-        this.orderIsInitialised = false;
-        this.welcomeMsg = `Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`;
-
+        this.welcomeMsg = 'Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅';
+        this._botSentMessages = [];
         // Инвойс формируется в конце
         this.invoice = new Invoice();
         this.buttons = {
@@ -46,9 +55,9 @@ module.exports = class Order {
             contactInfo: {
                 emoji: '📲',
                 text: 'Контактные данные',
-                callback_data: 'contactInfo',
+                callback_data: 'contactInfoValidation',
                 data: this.info.contactInfo
-            }
+            },
         };
     }
 
@@ -57,30 +66,44 @@ module.exports = class Order {
     }
 
     set orderInfo(settings) {
-        let [prop, val] = settings;
+        const [prop, val] = settings;
         this.info[prop] = val;
     }
 
-    launch(ctx) {
-        console.log("*** Запущена функция заказа букетов");
+    get _messagesToDelete() {
+        return this._botSentMessages;
+    }
+
+    set _messagesToDelete(message) {
+        if (message === 'clearArr') {
+            this._botSentMessages.length = 0;
+        } else {
+            const { message_id: id } = message;
+            this._botSentMessages.push(id);
+        }
+    }
+
+    async launch(ctx) {
+        console.log('*** Запущена функция заказа букетов');
         this.orderIsInitialised = true;
-        ctx.reply("Хорошо, давайте начнем!", Markup.keyboard([
+        this._messagesToDelete = await ctx.reply('Хорошо, давайте начнем!',
+            Markup.keyboard([
                 ['📱 Меню заказа'],
                 ['📞 Связаться с магазином'],
-                ['⛔ Отменить заказ️']
+                ['⛔ Отменить заказ️'],
             ])
             .oneTime()
             .resize()
-            .extra()
-        );
+            .extra());
         this.displayInterface(ctx, this.welcomeMsg);
     }
 
+    // Эта функция собирает меню
     makeInterface() {
-        let buttonsArr = [];
-        for (let prop in this.buttons) {
+        const buttonsArr = [];
+        for (const prop in this.buttons) {
             if (!this.buttons.hasOwnProperty(prop)) continue;
-            let result = [];
+            const result = [];
             if (this.info[prop] !== undefined) {
                 result.push(Markup.callbackButton(`✅ ${this.buttons[prop].text}`, `${this.buttons[prop].callback_data}`));
                 buttonsArr.push(result);
@@ -93,9 +116,19 @@ module.exports = class Order {
         return Markup.inlineKeyboard(buttonsArr).extra();
     }
 
-    displayInterface(ctx) {
-        let msg = `Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅`;
-        return ctx.reply(msg, this.makeInterface());
+    async displayInterface(ctx) {
+        const msg = 'Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅';
+        this._messagesToDelete = await ctx.reply(msg, this.makeInterface());
+    }
+
+    openValidationOperation(ctx, operationName) {
+        this.cleanScene(ctx);
+        try {
+            ctx.scene.enter(operationName);
+        } catch (e) {
+            console.log(e.message);
+            ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⛔ Что-то пошло не так!');
+        }
     }
 
     cancelOrder(ctx) {
@@ -108,4 +141,50 @@ module.exports = class Order {
             this.orderInfo = [prop, undefined];
         }
     }
-};
+
+    cleanScene(ctx) {
+        ctx.scene.msgToDelete = this._messagesToDelete;
+        ctx.scene.msgToDelete.forEach((id) => {
+            try {
+                ctx.deleteMessage(id);
+            } catch (error) {
+                console.log(error);
+            }
+        });
+        this._messagesToDelete = 'clearArr';
+    }
+}
+
+const order = new Order();
+
+orderScene.enter((ctx) => {
+    order.launch(ctx);
+});
+
+orderScene.on('callback_query', (ctx) => {
+    try {
+        order.openValidationOperation(ctx, ctx.update.callback_query.data);
+    } catch (error) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⛔ Cейчас эта кнопка не доступна!');
+    }
+});
+
+orderScene.on('message', async(ctx) => {
+    if (ctx.updateSubTypes[0] !== 'text') {
+        orderScene._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, выберите пункт в меню!');
+    }
+});
+
+orderScene.hears(/меню заказа/, (ctx) => {
+    orderScene.displayInterface(ctx);
+});
+
+orderScene.hears(/связаться с магазином/, (ctx) => {
+    orderScene.displayPhoneNumber(ctx);
+});
+
+orderScene.hears(/отменить заказ/, async(ctx) => {
+    this._messagesToDelete = await ctx.reply('Отменяем заказ (пока нет)');
+});
+
+module.exports = { order, orderScene };
