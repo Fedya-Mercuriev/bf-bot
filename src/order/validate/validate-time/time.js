@@ -13,7 +13,7 @@ const Base = require('./../../base-class');
 const identifyTime = require('./chunks/identify-time');
 const checkTimeRelevance = require('./chunks/check-time-relevance');
 const { checkTime } = require('./chunks/check-time');
-const order = require('../../../../core');
+const { order } = require('../../../../core');
 
 const timeValidation = new Scene('timeValidation');
 

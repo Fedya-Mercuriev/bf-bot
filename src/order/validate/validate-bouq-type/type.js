@@ -4,7 +4,7 @@ const { Markup, Extra } = Telegraf;
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
-const order = require('../../../../core');
+const { order } = require('../../../../core');
 const ServiceOps = require('../../../service-ops');
 const bouqtypeValidation = new Scene('bouqtypeValidation');
 

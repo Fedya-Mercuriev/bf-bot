@@ -19,7 +19,7 @@ const Base = require('../../base-class');
 
 const checkCloseAvailableDates = require('./chunks/get-close-available-dates');
 
-const order = require('../../../../core');
+const { order } = require('../../../../core');
 
 const identifyDate = require('./chunks/identify-date');
 
