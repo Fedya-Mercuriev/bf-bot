@@ -3,33 +3,19 @@
 /* eslint-disable padded-blocks */
 /* eslint-disable no-underscore-dangle */
 const Telegraf = require('telegraf');
-
 const { Markup, Extra } = Telegraf;
-
 const session = require('telegraf/session');
-
 const Stage = require('telegraf/stage');
-
 const Scene = require('telegraf/scenes/base');
-
 const { leave } = Stage;
-
 // Подключение всех необходимых функций и классов
 const Base = require('../../base-class');
-
 const checkCloseAvailableDates = require('./chunks/get-close-available-dates');
-
-const { order } = require('../../../../core');
-
+const { order } = require('./../../order');
 const identifyDate = require('./chunks/identify-date');
-
 const validateMonth = require('./chunks/validate-month');
-
 const validateDay = require('./chunks/validate-day');
-
 const dateValidation = new Scene('dateValidation');
-
-let validateDate;
 
 class ValidateDate extends Base {
     constructor() {
@@ -181,10 +167,11 @@ class ValidateDate extends Base {
     }
 }
 
+const validateDate = new ValidateDate();
+
 // Команды для сцены
 dateValidation.enter((ctx) => {
     let { orderDate } = order.orderInfo;
-    validateDate = new ValidateDate();
 
     if (orderDate !== undefined) {
         orderDate = ValidateDate.russifyDate(new Date(orderDate));

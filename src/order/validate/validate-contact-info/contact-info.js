@@ -6,7 +6,7 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const Base = require('./../../base-class');
-const { order } = require('./../../../../core');
+const order = require('./../../order');
 const { leave } = Stage;
 
 const contactInfoValidation = new Scene('contactInfoValidation');

@@ -11,7 +11,8 @@ const request = require('request-promise');
 const Base = require('./../../base-class');
 const { sendRequest, processResponse, prepareButtons } = require('./chunks/process-shipping-info');
 const { leave } = Stage;
-const { order, citiesList } = require('../../../../core');
+const order = require('./../../order');
+const citiesList = require('../../../../core');
 
 const shippingValidation = new Scene('shippingValidation');
 
