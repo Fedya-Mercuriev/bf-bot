@@ -69,7 +69,7 @@ class Shipping extends Base {
     async _processPickUpQuery(ctx) {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Минуточку');
         ctx.deleteMessage(ctx.update.callback_query.message.message_id);
-        this.shipping = false;
+        this.shippingAddress = false;
         this._confirmationMessages = await ctx.replyWithHTML('Вы выбрали самовывоз.\n📍 Адрес магазина: <b>Фрунзе проспект, 46</b>');
         this._requestContinue(
             ctx,
