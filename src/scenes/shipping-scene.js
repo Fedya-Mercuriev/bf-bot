@@ -1,6 +1,7 @@
 /* eslint-disable no-lonely-if */
 /* eslint-disable indent */
 const Telegraf = require('telegraf');
+const { Markup } = Telegraf;
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
@@ -11,8 +12,19 @@ const validateShipping = require('../order/validate/validate-shipping/shipping')
 
 const shippingValidation = new Scene('shippingValidation');
 
-shippingValidation.enter((ctx) => {
+shippingValidation.enter(async(ctx) => {
+    ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     const { shipping } = order.orderInfo;
+    validateShipping.messagesToDelete = await ctx.reply('Как будем забирать букет?',
+        Markup.keyboard([
+            ['📜 Меню заказа'],
+            ['📞 Связаться с магазином'],
+            ['⛔ Отменить заказ'],
+        ])
+        .oneTime()
+        .resize()
+        .extra()
+    );
 
     if (!order.city && typeof citiesList === 'object') {
         // Если способ доставки выбирается впервые, а также магазин функционирует
