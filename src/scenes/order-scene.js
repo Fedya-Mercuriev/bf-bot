@@ -5,7 +5,7 @@ const { Extra, Markup } = Telegraf;
 const Stage = require('telegraf/stage');
 const session = require('telegraf/session');
 const Scene = require('telegraf/scenes/base');
-const order = require('./../order/order');
+const order = require('../order/order');
 const orderScene = new Scene('orderScene');
 
 orderScene.enter((ctx) => {
@@ -22,7 +22,7 @@ orderScene.on('callback_query', (ctx) => {
 
 orderScene.on('message', async(ctx) => {
     if (ctx.updateSubTypes[0] !== 'text') {
-        order._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, выберите пункт в меню!');
+        order.messagesToDelete = await ctx.reply('⛔️ Пожалуйста, выберите пункт в меню!');
     }
 });
 
@@ -31,7 +31,7 @@ orderScene.hears(/связаться с магазином/, (ctx) => {
 });
 
 orderScene.hears(/отменить заказ/, async(ctx) => {
-    order._messagesToDelete = await ctx.reply('Отменяем заказ (пока нет)');
+    order.messagesToDelete = await ctx.reply('Отменяем заказ (пока нет)');
 });
 
 module.exports = orderScene;
