@@ -1,20 +1,14 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable no-prototype-builtins */
-
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable class-methods-use-this */
 /* eslint-disable indent */
 const Telegraf = require('telegraf');
 const { Extra, Markup } = Telegraf;
-const session = require('telegraf/session');
-const Scene = require('telegraf/scenes/base');
-const Base = require('./base-class');
 const Invoice = require('./invoice');
-const orderScene = new Scene('orderScene');
 
-class Order extends Base {
+class Order {
     constructor() {
-        super();
         this.info = {
             contactInfo: undefined,
             orderDate: undefined,
@@ -88,9 +82,8 @@ class Order extends Base {
         this.orderIsInitialised = true;
         this._messagesToDelete = await ctx.reply('Хорошо, давайте начнем!',
             Markup.keyboard([
-                ['📱 Меню заказа'],
                 ['📞 Связаться с магазином'],
-                ['⛔ Отменить заказ️'],
+                ['⛔ Отменить заказ'],
             ])
             .oneTime()
             .resize()
@@ -102,15 +95,16 @@ class Order extends Base {
     makeInterface() {
         const buttonsArr = [];
         for (const prop in this.buttons) {
-            if (!this.buttons.hasOwnProperty(prop)) continue;
-            const result = [];
-            if (this.info[prop] !== undefined) {
-                result.push(Markup.callbackButton(`✅ ${this.buttons[prop].text}`, `${this.buttons[prop].callback_data}`));
-                buttonsArr.push(result);
-            } else {
-                result.push(Markup.callbackButton(`${this.buttons[prop].emoji} ${this.buttons[prop].text}`,
-                    `${this.buttons[prop].callback_data}`));
-                buttonsArr.push(result);
+            if (this.buttons.hasOwnProperty(prop)) {
+                const result = [];
+                if (this.info[prop] !== undefined) {
+                    result.push(Markup.callbackButton(`✅ ${this.buttons[prop].text}`, `${this.buttons[prop].callback_data}`));
+                    buttonsArr.push(result);
+                } else {
+                    result.push(Markup.callbackButton(`${this.buttons[prop].emoji} ${this.buttons[prop].text}`,
+                        `${this.buttons[prop].callback_data}`));
+                    buttonsArr.push(result);
+                }
             }
         }
         return Markup.inlineKeyboard(buttonsArr).extra();
@@ -157,34 +151,4 @@ class Order extends Base {
 
 const order = new Order();
 
-orderScene.enter((ctx) => {
-    order.launch(ctx);
-});
-
-orderScene.on('callback_query', (ctx) => {
-    try {
-        order.openValidationOperation(ctx, ctx.update.callback_query.data);
-    } catch (error) {
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⛔ Cейчас эта кнопка не доступна!');
-    }
-});
-
-orderScene.on('message', async(ctx) => {
-    if (ctx.updateSubTypes[0] !== 'text') {
-        orderScene._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, выберите пункт в меню!');
-    }
-});
-
-orderScene.hears(/меню заказа/, (ctx) => {
-    orderScene.displayInterface(ctx);
-});
-
-orderScene.hears(/связаться с магазином/, (ctx) => {
-    orderScene.displayPhoneNumber(ctx);
-});
-
-orderScene.hears(/отменить заказ/, async(ctx) => {
-    this._messagesToDelete = await ctx.reply('Отменяем заказ (пока нет)');
-});
-
-module.exports = { order, orderScene };
+module.exports = order;
