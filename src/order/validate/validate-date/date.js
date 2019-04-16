@@ -4,27 +4,19 @@
 /* eslint-disable no-underscore-dangle */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-const session = require('telegraf/session');
-const Stage = require('telegraf/stage');
-const Scene = require('telegraf/scenes/base');
-const { leave } = Stage;
 // Подключение всех необходимых функций и классов
 const Base = require('../../base-class');
 const checkCloseAvailableDates = require('./chunks/get-close-available-dates');
-const { order } = require('./../../order');
 const identifyDate = require('./chunks/identify-date');
 const validateMonth = require('./chunks/validate-month');
 const validateDay = require('./chunks/validate-day');
-const dateValidation = new Scene('dateValidation');
 
 class ValidateDate extends Base {
     constructor() {
         super();
-        this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        // this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate = null;
         this._availableCloseDates = [];
-        // saveDataMsg хранит в себе объекты сообщений с статусом и подтверждением сохранения данных
-        // this._confirmationMessages = [];
         this._validateMonth = validateMonth;
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
@@ -39,7 +31,7 @@ class ValidateDate extends Base {
         this.overwriteDataInfo = 'requestDate';
     }
 
-    static russifyDate(date) {
+    russifyDate(date) {
         // Получает date в формате миллисекунд
         const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         const usedDate = new Date(date);
@@ -75,7 +67,7 @@ class ValidateDate extends Base {
             this._removeConfirmationMessages(ctx);
         }
         // Выводит сообщение с подтверждением
-        this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(validateDate.date)}`);
+        this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.date)}`);
         this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
     }
 
@@ -113,7 +105,7 @@ class ValidateDate extends Base {
                     this._removeConfirmationMessages(ctx);
                 }
 
-                this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
+                this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
                 this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
             })
             .catch(async(error) => {
@@ -121,13 +113,13 @@ class ValidateDate extends Base {
                     this._removeConfirmationMessages(ctx);
                 }
                 if (error.message === 'сегодня') {
-                    this._setTempDate(validateDate._calculateDate(true));
-                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
+                    this._setTempDate(this._calculateDate(true));
+                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
                     this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else if (error.message === 'завтра') {
-                    this._setTempDate(validateDate._calculateDate(false));
-                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
+                    this._setTempDate(this._calculateDate(false));
+                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
                     this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else {
@@ -169,44 +161,4 @@ class ValidateDate extends Base {
 
 const validateDate = new ValidateDate();
 
-// Команды для сцены
-dateValidation.enter((ctx) => {
-    let { orderDate } = order.orderInfo;
-
-    if (orderDate !== undefined) {
-        orderDate = ValidateDate.russifyDate(new Date(orderDate));
-        validateDate.confirmDateOverride(ctx, orderDate);
-    } else {
-        validateDate.requestDate(ctx);
-    }
-});
-
-dateValidation.on('message', async(ctx) => {
-
-    validateDate.userMessages = ctx.update.message.message_id;
-    if (ctx.updateSubTypes[0] !== 'text') {
-        validateDate._messagesToDelete = await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста');
-
-    } else if (ctx.update.message.text.match(/меню заказа/i)) {
-        validateDate.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
-
-    } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
-        validateDate.displayPhoneNumber(ctx);
-
-    } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-        ctx.reply('Отменяем заказ (пока нет)');
-
-    } else {
-        validateDate._validateDate(ctx, ctx.message.text);
-    }
-});
-
-dateValidation.on('callback_query', (ctx) => {
-    try {
-        validateDate.invokeFunction(ctx.update.callback_query.data, ctx);
-    } catch (error) {
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⛔ Cейчас эта кнопка не доступна!');
-    }
-});
-
-module.exports = dateValidation;
+module.exports = validateDate;
