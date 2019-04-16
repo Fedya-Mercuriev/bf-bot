@@ -14,11 +14,11 @@ class Base {
         this._statusMessages = [];
     }
 
-    get _messagesToDelete() {
+    get messagesToDelete() {
         return this._botSentMessages;
     }
 
-    set _messagesToDelete(message) {
+    set messagesToDelete(message) {
         if (message === 'clearArr') {
             this._botSentMessages.length = 0;
         } else {
