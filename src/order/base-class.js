@@ -3,7 +3,7 @@
 /* eslint-disable no-underscore-dangle */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-const { order } = require('../../core');
+const order = require('./../order/order');
 const Contacts = require('../main-page/contacts');
 
 class Base {
@@ -128,7 +128,7 @@ class Base {
     }
 
     cleanScene(ctx) {
-        if (this._saveDataMsg.length !== 0) {
+        if (this._confirmationMessages.length !== 0) {
             ctx.scene.msgToDelete = this._messagesToDelete.concat(this._confirmationMessages);
         } else {
             ctx.scene.msgToDelete = this._messagesToDelete;
@@ -182,8 +182,8 @@ class Base {
             console.log(e.message);
         }
         this.cleanScene(ctx);
-        order.displayInterface(ctx);
         ctx.scene.leave(sceneName);
+        ctx.scene.enter('orderScene');
     }
 
     async displayPhoneNumber(ctx) {
