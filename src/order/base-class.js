@@ -129,9 +129,9 @@ class Base {
 
     cleanScene(ctx) {
         if (this._confirmationMessages.length !== 0) {
-            ctx.scene.msgToDelete = this._messagesToDelete.concat(this._confirmationMessages);
+            ctx.scene.msgToDelete = this.messagesToDelete.concat(this._confirmationMessages);
         } else {
-            ctx.scene.msgToDelete = this._messagesToDelete;
+            ctx.scene.msgToDelete = this.messagesToDelete;
         }
         ctx.scene.msgToDelete.forEach((id) => {
             try {
@@ -141,7 +141,7 @@ class Base {
             }
         });
         this._confirmationMessages = 'clearArr';
-        this._messagesToDelete = 'clearArr';
+        this.messagesToDelete = 'clearArr';
     }
 
     async _requestContinue(ctx, additionalMsg, propNameToAccessParameters, customButtonsSet) {
@@ -187,11 +187,11 @@ class Base {
     }
 
     async displayPhoneNumber(ctx) {
-        this._messagesToDelete = await Contacts.showPhoneNumber(ctx);
+        this.messagesToDelete = await Contacts.showPhoneNumber(ctx);
     }
 
     async cancelOrder(ctx) {
-        this._messagesToDelete = await ctx.reply('Отменяю заказ');
+        this.messagesToDelete = await ctx.reply('Отменяю заказ');
     }
 }
 
