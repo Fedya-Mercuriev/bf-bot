@@ -78,11 +78,11 @@ class ValidateDate extends Base {
     async requestDate(ctx) {
         const now = new Date();
         this._availableCloseDates = this._checkCloseAvailableDates(now);
-        this._messagesToDelete = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
+        this.messagesToDelete = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
             Markup.inlineKeyboard(this._availableCloseDates).extra());
     }
 
-    _validateDate(ctx, userInput) {
+    validateDate(ctx, userInput) {
         // Начинаем с распознавания даты
         this._identifyDate(userInput)
             // Затем проверяем месяц
@@ -123,7 +123,7 @@ class ValidateDate extends Base {
                     this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else {
-                    this._messagesToDelete = await ctx.reply(error.message);
+                    this.messagesToDelete = await ctx.reply(error.message);
                 }
             });
     }
@@ -143,14 +143,14 @@ class ValidateDate extends Base {
         // или оставить
         ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`)
             .then((message) => {
-                this._messagesToDelete = message;
+                this.messagesToDelete = message;
                 return ctx.reply('Перезаписать ее или оставить?', Markup.inlineKeyboard([
                     [Markup.callbackButton('Перезаписать', `_overwriteData:${this.overwriteDataInfo}`)],
                     [Markup.callbackButton('Оставить', `_leaveData:${this.leaveDataInfo}`)],
                 ]).extra());
             })
             .then((message) => {
-                this._messagesToDelete = message;
+                this.messagesToDelete = message;
             });
     }
 
