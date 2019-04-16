@@ -9,7 +9,7 @@ const order = require('./../order/order');
 const orderScene = new Scene('orderScene');
 
 orderScene.enter((ctx) => {
-    order.launch(ctx);
+    order.displayInterface(ctx);
 });
 
 orderScene.on('callback_query', (ctx) => {
