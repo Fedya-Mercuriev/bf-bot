@@ -9,6 +9,7 @@ const Invoice = require('./invoice');
 
 class Order {
     constructor() {
+        this.orderIsInitialised = false;
         this.info = {
             contactInfo: undefined,
             orderDate: undefined,
@@ -78,16 +79,6 @@ class Order {
     }
 
     async launch(ctx) {
-        console.log('*** Запущена функция заказа букетов');
-        this.orderIsInitialised = true;
-        this._messagesToDelete = await ctx.reply('Хорошо, давайте начнем!',
-            Markup.keyboard([
-                ['📞 Связаться с магазином'],
-                ['⛔ Отменить заказ'],
-            ])
-            .oneTime()
-            .resize()
-            .extra());
         this.displayInterface(ctx, this.welcomeMsg);
     }
 
@@ -112,12 +103,23 @@ class Order {
 
     async displayInterface(ctx) {
         const msg = 'Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅';
+        this._messagesToDelete = await ctx.reply('Вы в меню заказа',
+            Markup.keyboard([
+                ['📞 Связаться с магазином'],
+                ['⛔ Отменить заказ'],
+            ])
+            .oneTime()
+            .resize()
+            .extra());
         this._messagesToDelete = await ctx.reply(msg, this.makeInterface());
     }
 
     openValidationOperation(ctx, operationName) {
+        const baseSceneName = ctx.scene.current.id;
         this.cleanScene(ctx);
+        console.log(ctx.scene);
         try {
+            ctx.scene.leave(baseSceneName);
             ctx.scene.enter(operationName);
         } catch (e) {
             console.log(e.message);
