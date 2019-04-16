@@ -15,11 +15,11 @@ class Bouquets extends Base {
         this._pageNum = 1;
         this._welcomeMsg = 'А теперь выберите из предложенных вариантов желаемый букет!';
         this._messagesToDelete = [];
-        this.chosenType = null;
+        this.chosenBouquet = null;
         this._bouquetsCatalogMessages = [];
         this.saveDataKeysArr = {
             keyToAssignData: 'bouquet',
-            keyToAccessData: 'chosenType',
+            keyToAccessData: 'chosenBouquet',
             notificationMsg: 'Сохраняю выбранный букет',
             sceneName: 'bouqtypeValidation',
         };
@@ -56,11 +56,18 @@ class Bouquets extends Base {
         return bouquetesArr;
     }
 
-    askToChooseBouquet(ctx) {
-        ctx.reply(this._welcomeMsg).then((result) => {
-            this._messagesToDelete.push(result);
-            this.displayCatalog(ctx);
-        });
+    async askToChooseBouquet(ctx) {
+        this._messagesToDelete = await ctx.reply(this._welcomeMsg,
+            Markup.keyboard([
+                ['📜 Меню заказа'],
+                ['📞 Связаться с магазином'],
+                ['⛔ Отменить заказ'],
+            ])
+            .oneTime()
+            .resize()
+            .extra(),
+        );
+        this.displayCatalog(ctx);
     }
 
     async displayCatalog(ctx) {
@@ -176,39 +183,18 @@ class Bouquets extends Base {
         */
         // Извлечем информацию о букете из соответствующей карточки
         const chosenBouquetCard = this.availableBouquets[bouquetNumber];
-        const { name, price } = chosenBouquetCard;
+        const { photo, name, price } = chosenBouquetCard;
         const caption = `Вы выбрали: \n<b>${name}</b>\n<i>Стоимость:</i> ${price}`;
+        this.chosenBouquet = { photo, name, price };
 
         this._confirmationMessages = await ctx.telegram.sendPhoto(ctx.chat.id, photoId, {
             caption,
             parse_mode: 'HTML',
             reply_markup: Markup.inlineKeyboard([
-                [Markup.callbackButton('Сохранить и выйти', '_saveAndExit:bouqtypeValidation')],
+                [Markup.callbackButton('Сохранить и выйти', '_saveAndExit:saveDataKeysArr')],
                 [Markup.callbackButton('Выбрать другой', 'returnToCatalog')],
             ]),
         });
-    }
-
-    _saveAndExit(ctx) {
-        // В информацию о выбранном букете будут записаны:
-        // * название
-        // * фотография букета
-        // * стоимость букета
-
-        let [_msgTitle, title, _description, price] = ctx.update.callback_query.message.caption.split('\n'),
-            photoId = ctx.update.callback_query.message.photo[1].file_id,
-            bouquetInformation = {};
-
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, 'Сохраняю выбранный букет');
-        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
-
-        bouquetInformation.title = title;
-        bouquetInformation.photo = photoId;
-        bouquetInformation.price = price.replace(/^\D+/g, '');
-
-        // Запишем в ифнормацию о заказе, в соответствующее свойство выбранный букет
-        order.orderInfo = ['bouquet', bouquetInformation];
-        ctx.scene.leave('bouqtypeValidation');
     }
 
     returnToCatalog(ctx) {
@@ -217,14 +203,23 @@ class Bouquets extends Base {
     }
 
     async confirmBouquetOverride(ctx, chosenBouquet) {
-        const { title, photo, price } = chosenBouquet;
-        const cardCaption = `💐<b>${title}</b>\n💸Стоимость: ${price}`;
+        const { name, photo, price } = chosenBouquet;
+        const cardCaption = `💐<b>${name}</b>\n💸Стоимость: ${price}`;
         const confirmationMessage = '\n Выбрать другой букет или оставить этот?';
         // chosenBouquet хранит следующие свойства:
         // * title - название букета (String)
         // * photo - ссылку на фотографию букета (String)
         // * price - стоимость букета (Number)
-        this.messagesToDelete = await ctx.reply('Вы раньше выбирали этот букет:');
+        this.messagesToDelete = await ctx.reply('Вы раньше выбирали этот букет:',
+            Markup.keyboard([
+                ['📜 Меню заказа'],
+                ['📞 Связаться с магазином'],
+                ['⛔ Отменить заказ'],
+            ])
+            .oneTime()
+            .resize()
+            .extra(),
+        );
         this.messagesToDelete = await ctx.telegram.sendPhoto(ctx.chat.id, photo, {
             caption: cardCaption + confirmationMessage,
             parse_mode: 'HTML',
