@@ -14,7 +14,7 @@ const dateValidation = new Scene('dateValidation');
 dateValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     let { orderDate } = order.orderInfo;
-    validateDate.messagesToDelete = await ctx.reply('Давайте проверим дату',
+    const message = await ctx.reply('Давайте проверим дату',
         Markup.keyboard([
             ['📜 Меню заказа'],
             ['📞 Связаться с магазином'],
@@ -24,6 +24,10 @@ dateValidation.enter(async(ctx) => {
         .resize()
         .extra()
     );
+    validateDate.messages = {
+        messageType: 'other',
+        messageObj: message,
+    };
     if (orderDate !== undefined) {
         orderDate = validateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
@@ -34,7 +38,11 @@ dateValidation.enter(async(ctx) => {
 
 dateValidation.on('message', async(ctx) => {
     if (ctx.updateSubTypes[0] !== 'text') {
-        validateDate.messagesToDelete = await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста');
+        const message = await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста');
+        validateDate.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
     } else if (ctx.update.message.text.match(/меню заказа/i)) {
         validateDate.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
     } else if (ctx.update.message.text.match(/связаться с магазином/i)) {

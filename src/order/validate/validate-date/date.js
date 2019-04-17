@@ -21,6 +21,11 @@ class ValidateDate extends Base {
         this._identifyDate = identifyDate;
         this._valiadateDay = validateDay;
         this._checkCloseAvailableDates = checkCloseAvailableDates;
+        this.messagesStorage = {
+            intro: [],
+            confirmation: [],
+            other: [],
+        };
         this.saveDataKeysArr = {
             keyToAssignData: 'orderDate',
             keyToAccessData: 'date',
@@ -63,11 +68,15 @@ class ValidateDate extends Base {
             this._setTempDate(this._calculateDate(false));
         }
 
-        if (this._confirmationMessages.length !== 0) {
-            this._removeConfirmationMessages(ctx);
+        if (this.messages.confirmation.length !== 0) {
+            this.removeMessagesOfSpecificType(ctx, 'confirmation');
         }
         // Выводит сообщение с подтверждением
-        this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.date)}`);
+        const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.date)}`);
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
         this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
     }
 
@@ -78,8 +87,12 @@ class ValidateDate extends Base {
     async requestDate(ctx) {
         const now = new Date();
         this._availableCloseDates = this._checkCloseAvailableDates(now);
-        this.messagesToDelete = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
+        const message = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
             Markup.inlineKeyboard(this._availableCloseDates).extra());
+        this.messages = {
+            messageType: 'intro',
+            messageObj: message,
+        };
     }
 
     validateDate(ctx, userInput) {
@@ -99,31 +112,47 @@ class ValidateDate extends Base {
                 // эта дата еще не записана в информацию о заказе
                 this._setTempDate(resultDate);
 
-                if (this._confirmationMessages.length !== 0) {
+                if (this.messages.confirmation.length !== 0) {
                     // Этот блок выполняется если ранее уже была проверена дата и было выведено
                     // сообщение с предложением продолжить заказ
-                    this._removeConfirmationMessages(ctx);
+                    this.removeMessagesOfSpecificType(ctx, 'confirmation');
                 }
 
-                this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                this.messages = {
+                    messageType: 'confirmation',
+                    messageObj: message,
+                };
                 this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
             })
             .catch(async(error) => {
-                if (this._confirmationMessages.length !== 0) {
-                    this._removeConfirmationMessages(ctx);
+                if (this.messages.confirmation.length !== 0) {
+                    this.removeMessagesOfSpecificType(ctx, 'confirmation');
                 }
                 if (error.message === 'сегодня') {
                     this._setTempDate(this._calculateDate(true));
-                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                    const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                    this.messages = {
+                        messageType: 'confirmation',
+                        messageObj: message,
+                    };
                     this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else if (error.message === 'завтра') {
                     this._setTempDate(this._calculateDate(false));
-                    this._confirmationMessages = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                    const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                    this.messages = {
+                        messageType: 'confirmation',
+                        messageObj: message,
+                    };
                     this._requestContinue(ctx, 'введите другую дату', 'saveDataKeysArr');
 
                 } else {
-                    this.messagesToDelete = await ctx.reply(error.message);
+                    const message = await ctx.reply(error.message);
+                    this.messages = {
+                        messageType: 'other',
+                        messageObj: message,
+                    };
                 }
             });
     }
@@ -138,20 +167,22 @@ class ValidateDate extends Base {
         this.tempDate = Date.parse(result);
     }
 
-    confirmDateOverride(ctx, date) {
+    async confirmDateOverride(ctx, date) {
         // Функция выводит ранее выбранеую и сохраненную дату и предлагает перезаписать ее
         // или оставить
-        ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`)
-            .then((message) => {
-                this.messagesToDelete = message;
-                return ctx.reply('Перезаписать ее или оставить?', Markup.inlineKeyboard([
-                    [Markup.callbackButton('Перезаписать', `_overwriteData:${this.overwriteDataInfo}`)],
-                    [Markup.callbackButton('Оставить', `_leaveData:${this.leaveDataInfo}`)],
-                ]).extra());
-            })
-            .then((message) => {
-                this.messagesToDelete = message;
-            });
+        let message = await ctx.replyWithHTML(`⚠️ Вы ранее вводили эту дату: <b>${date}</b>`);
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
+        message = ctx.reply('Перезаписать ее или оставить?', Markup.inlineKeyboard([
+            [Markup.callbackButton('Перезаписать', `_overwriteData:${this.overwriteDataInfo}`)],
+            [Markup.callbackButton('Оставить', `_leaveData:${this.leaveDataInfo}`)],
+        ]).extra());
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
     }
 
     get date() {
