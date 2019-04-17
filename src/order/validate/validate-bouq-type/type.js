@@ -25,7 +25,7 @@ class Bouquets extends Base {
         };
         this.chosenBouquet = null;
         this._bouquetsCatalogMessages = [];
-        this.saveDataKeysArr = {
+        this.saveDataKeys = {
             keyToAssignData: 'bouquet',
             keyToAccessData: 'chosenBouquet',
             notificationMsg: 'Сохраняю выбранный букет',
@@ -34,20 +34,6 @@ class Bouquets extends Base {
         };
         this.leaveDataInfo = 'bouqtypeValidation';
         this.overwriteDataInfo = 'askToChooseBouquet';
-    }
-
-    // Сеттер получает объект с сообщением,
-    // извлекает из него id и кладет в соответствующую категорию
-    set messages(options) {
-        const { messageType, messageObj } = options;
-        if (messageObj !== 'clear') {
-            const { message_id: id } = messageObj;
-            this.messagesStorage[messageType].push(id);
-            console.log(`Добавили сообщение в: ${messageType}`);
-        } else {
-            this.messagesStorage[messageType].length = 0;
-            console.log(`Удалили сообщения из: ${messageType}`);
-        }
     }
 
     get availableBouquets() {
@@ -157,7 +143,7 @@ class Bouquets extends Base {
     }
 
     _clearCatalogPageContent(ctx) {
-        this.removeMessages(ctx, 'bouquetCatalog');
+        this.removeMessagesOfSpecificType(ctx, 'bouquetCatalog');
         this.messages = {
             messageType: 'bouquetCatalog',
             messageObj: 'clear',
@@ -207,12 +193,11 @@ class Bouquets extends Base {
         const { photo, name, price } = chosenBouquetCard;
         const caption = `Вы выбрали: \n<b>${name}</b>\n<i>Стоимость:</i> ${price}`;
         this.chosenBouquet = { photo, name, price };
-        this.messagesToDelete = this.bouquetCatalogMessages;
         const message = await ctx.telegram.sendPhoto(ctx.chat.id, photoId, {
             caption,
             parse_mode: 'HTML',
             reply_markup: Markup.inlineKeyboard([
-                [Markup.callbackButton('Сохранить и выйти', '_saveAndExit:saveDataKeysArr')],
+                [Markup.callbackButton('Сохранить и выйти', '_saveAndExit:saveDataKeys')],
                 [Markup.callbackButton('Выбрать другой', 'returnToCatalog')],
             ]),
         });
@@ -258,13 +243,14 @@ class Bouquets extends Base {
             ]),
         });
         this.messages = {
-            messageType: 'other',
+            messageType: 'confirmation',
             messageObj: message,
         };
     }
 
     chooseDifferentBouquet(ctx) {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, 'Загружаю каталог');
+        this.cleanScene(ctx);
         this.displayCatalog(ctx);
     }
 }
