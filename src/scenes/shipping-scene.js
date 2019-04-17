@@ -1,7 +1,7 @@
 /* eslint-disable no-lonely-if */
 /* eslint-disable indent */
 const Telegraf = require('telegraf');
-const { Markup } = Telegraf;
+const { Markup, Extra } = Telegraf;
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
@@ -15,7 +15,7 @@ const shippingValidation = new Scene('shippingValidation');
 shippingValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     const { shipping } = order.orderInfo;
-    validateShipping.messagesToDelete = await ctx.reply('Как будем забирать букет?',
+    let message = await ctx.reply('Как будем забирать букет?',
         Markup.keyboard([
             ['📜 Меню заказа'],
             ['📞 Связаться с магазином'],
@@ -23,8 +23,11 @@ shippingValidation.enter(async(ctx) => {
         ])
         .oneTime()
         .resize()
-        .extra()
-    );
+        .extra());
+    this.messages = {
+        messageType: 'other',
+        messageObj: message,
+    };
 
     if (!order.city && typeof citiesList === 'object') {
         // Если способ доставки выбирается впервые, а также магазин функционирует
@@ -72,7 +75,11 @@ shippingValidation.on('message', async(ctx) => {
     } else if (ctx.updateSubTypes.indexOf('location') !== -1) {
         validateShipping.validateShippingInfo(ctx, order.city);
     } else {
-        validateShipping.messagesToDelete = await ctx.reply('⛔️ Пожалуйста, напишите адрес или отправьте геопозицию!');
+        const message = await ctx.reply('⛔️ Пожалуйста, напишите адрес или отправьте геопозицию!');
+        validateShipping.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
     }
 });
 
