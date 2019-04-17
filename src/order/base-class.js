@@ -26,60 +26,12 @@ class Base {
             if (messageType === 'all') {
                 const messagesStorage = Object.keys(this.messagesStorage);
                 messagesStorage.forEach((messageStorage) => {
-                    messageStorage.length = 0;
+                    messagesStorage[messageStorage].length = 0;
                 });
                 console.log('Очистили хранилище для сообщений');
             }
             this.messagesStorage[messageType].length = 0;
             console.log(`Удалили сообщения из: ${messageType}`);
-        }
-    }
-
-    get messagesToDelete() {
-        return this._botSentMessages;
-    }
-
-    set messagesToDelete(message) {
-        if (message === 'clearArr') {
-            this._botSentMessages.length = 0;
-        } else {
-            // Этот блок выполнится если был передан массив сообщений
-            if (typeof message === 'object') {
-                const processedmessages = message.map((message) => {
-                    const { message_id: id } = message;
-                    return id;
-                });
-                this._botSentMessages = this._botSentMessages.concat(processedmessages);
-                return;
-            }
-            const { message_id: id } = message;
-            this._botSentMessages.push(id);
-        }
-    }
-
-    get _confirmationMessages() {
-        return this._saveDataMsg;
-    }
-
-    set _confirmationMessages(message) {
-        if (message === 'clearArr') {
-            this._saveDataMsg.length = 0;
-        } else {
-            const { message_id: id } = message;
-            this._saveDataMsg.push(id);
-        }
-    }
-
-    get _statusMsg() {
-        return this._statusMessages;
-    }
-
-    set _statusMsg(message) {
-        if (message === 'clearArr') {
-            this._statusMessages.length = 0;
-        } else {
-            const { message_id: id } = message;
-            this._statusMessages.push(id);
         }
     }
 
@@ -94,7 +46,7 @@ class Base {
         return this[funcName](ctx);
     }
 
-    removeMessages(ctx, propName) {
+    removeMessagesOfSpecificType(ctx, propName) {
         this.messagesStorage[propName].forEach((id) => {
             try {
                 ctx.deleteMessage(id);
@@ -106,27 +58,6 @@ class Base {
             messageType: propName,
             messageObj: 'clear',
         };
-    }
-
-    _removeConfirmationMessages(ctx) {
-        this._confirmationMessages.forEach((id) => {
-            try {
-                ctx.deleteMessage(id);
-            } catch (e) {
-                console.log(e.message);
-            }
-        });
-        this._confirmationMessages = 'clearArr';
-    }
-
-    _removeStatusMessages(ctx) {
-        this._statusMessages.forEach((id) => {
-            try {
-                ctx.deleteMessage(id);
-            } catch (error) {
-                console.log(error);
-            }
-        });
     }
 
     _saveAndExit(ctx, optionsArrName) {
@@ -161,11 +92,24 @@ class Base {
     }
 
     cleanScene(ctx) {
-        if (this._confirmationMessages.length !== 0) {
-            ctx.scene.msgToDelete = this.messagesToDelete.concat(this._confirmationMessages);
-        } else {
-            ctx.scene.msgToDelete = this.messagesToDelete;
-        }
+        // if (this._confirmationMessages.length !== 0) {
+        //     ctx.scene.msgToDelete = this.messagesToDelete.concat(this._confirmationMessages);
+        // } else {
+        //     ctx.scene.msgToDelete = this.messagesToDelete;
+        // }
+        const messagesBoxes = Object.keys(this.messagesStorage);
+        ctx.scene.msgToDelete = [];
+        // Склеим все массивы в один большой, по которому будем проходиться и удалять сообщения
+        messagesBoxes.forEach((messageStorage) => {
+            if (this.messagesStorage[messageStorage].length !== 0) {
+                ctx.scene.msgToDelete = ctx.scene.msgToDelete.concat(this.messagesStorage[messageStorage]);
+                // После добавления массива - очистим его
+                this.messages = {
+                    messageType: messageStorage,
+                    messageObj: 'clear',
+                };
+            }
+        });
         ctx.scene.msgToDelete.forEach((id) => {
             try {
                 ctx.deleteMessage(id);
@@ -173,9 +117,6 @@ class Base {
                 console.log(error);
             }
         });
-        this.messages = {
-
-        }
     }
 
     async _requestContinue(ctx, additionalMsg, propNameToAccessParameters, customButtonsSet) {
@@ -220,8 +161,8 @@ class Base {
         ctx.scene.enter('orderScene');
     }
 
-    async displayPhoneNumber(ctx) {
-        this.messagesToDelete = await Contacts.showPhoneNumber(ctx);
+    displayPhoneNumber(ctx) {
+        return Contacts.showPhoneNumber(ctx);
     }
 
     async cancelOrder(ctx) {
