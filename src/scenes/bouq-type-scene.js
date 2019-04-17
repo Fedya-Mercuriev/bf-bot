@@ -93,6 +93,7 @@ const availableBouquets = [
 
 // Начало блока с обработкой действий пользователя над ботом
 bouqtypeValidation.enter((ctx) => {
+    ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю все необходимые компоненты');
     const { bouquet: chosenBouquet } = order.orderInfo;
     // Этот блок выполнится если база букетов не была загружена
     if (!bouquets.availableBouquets) {
@@ -119,11 +120,7 @@ bouqtypeValidation.on('message', async(ctx) => {
         if (ctx.update.message.text.match(/меню заказа/gi)) {
             bouquets.returnToMenu(ctx, order.displayInterface.bind(order), 'bouqtypeValidation');
         } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
-            const message = await bouquets.displayPhoneNumber(ctx);
-            bouquets.messages = {
-                messageType: 'other',
-                messageObj: message,
-            };
+            bouquets.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
             ctx.reply('Отменяю заказ!(нет)');
         } else {

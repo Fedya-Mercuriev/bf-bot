@@ -9,6 +9,7 @@ const validateContactInfo = require('./../order/validate/validate-contact-info/c
 const contactInfoValidation = new Scene('contactInfoValidation');
 
 contactInfoValidation.enter((ctx) => {
+    ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю все необходимые компоненты');
     const { contactInfo } = order.orderInfo;
     if (contactInfo !== undefined) {
         validateContactInfo.confirmInfoOverwrite(ctx, contactInfo);
