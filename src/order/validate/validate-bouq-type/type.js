@@ -14,7 +14,15 @@ class Bouquets extends Base {
         this._availableBouquets = null;
         this._pageNum = 1;
         this._welcomeMsg = 'А теперь выберите из предложенных вариантов желаемый букет!';
-        this._messagesToDelete = [];
+        // Это свойство хранит в себе все отправленные ботом сообщения,
+        // разделенные на категории;
+        // При выходу из сцены, эти сообщения будут удалены
+        this.messagesStorage = {
+            intro: [],
+            confirmation: [],
+            bouquetCatalog: [],
+            other: [],
+        };
         this.chosenBouquet = null;
         this._bouquetsCatalogMessages = [];
         this.saveDataKeysArr = {
@@ -22,9 +30,24 @@ class Bouquets extends Base {
             keyToAccessData: 'chosenBouquet',
             notificationMsg: 'Сохраняю выбранный букет',
             sceneName: 'bouqtypeValidation',
+            messagesStorage: 'messagesStorage',
         };
         this.leaveDataInfo = 'bouqtypeValidation';
         this.overwriteDataInfo = 'askToChooseBouquet';
+    }
+
+    // Сеттер получает объект с сообщением,
+    // извлекает из него id и кладет в соответствующую категорию
+    set messages(options) {
+        const { messageType, messageObj } = options;
+        if (messageObj !== 'clear') {
+            const { message_id: id } = messageObj;
+            this.messagesStorage[messageType].push(id);
+            console.log(`Добавили сообщение в: ${messageType}`);
+        } else {
+            this.messagesStorage[messageType].length = 0;
+            console.log(`Удалили сообщения из: ${messageType}`);
+        }
     }
 
     get availableBouquets() {
@@ -33,18 +56,6 @@ class Bouquets extends Base {
 
     set availableBouquets(bouquets) {
         this._availableBouquets = bouquets;
-    }
-
-    get bouquetCatalogMessages() {
-        return this._bouquetsCatalogMessages;
-    }
-
-    set bouquetCatalogMessages(message) {
-        if (message !== 'clearArr') {
-            this._bouquetsCatalogMessages.push(message);
-        } else {
-            this._bouquetsCatalogMessages.length = 0;
-        }
     }
 
     addCallbackDataToBouquets(bouquets) {
@@ -57,7 +68,7 @@ class Bouquets extends Base {
     }
 
     async askToChooseBouquet(ctx) {
-        this._messagesToDelete = await ctx.reply(this._welcomeMsg,
+        const message = await ctx.reply(this._welcomeMsg,
             Markup.keyboard([
                 ['📜 Меню заказа'],
                 ['📞 Связаться с магазином'],
@@ -65,8 +76,11 @@ class Bouquets extends Base {
             ])
             .oneTime()
             .resize()
-            .extra(),
-        );
+            .extra());
+        this.messages = {
+            messageType: 'intro',
+            messageObj: message,
+        };
         this.displayCatalog(ctx);
     }
 
@@ -75,19 +89,23 @@ class Bouquets extends Base {
         if (msgWereSent) {
             this._displayPagination(ctx);
         } else {
-            this.messagesToDelete = await ctx.reply('⛔️ Что-то пошло не так. Пожалуйста, вернитесь в меню заказа и попробуйте еще раз!');
+            const message = await ctx.reply('⛔️ Что-то пошло не так. Пожалуйста, вернитесь в меню заказа и попробуйте еще раз!');
+            this.messages = {
+                messageType: 'other',
+                messageObj: message,
+            };
         }
     }
 
     // Отображает список букетов
     async _displayCatalogPage(ctx) {
         // Данная функция отображает пачку букетов, внизу прикрепляет панель дя переключения страниц с пачками букетов
-        const bouquetsPack = this._displayBouquetPack(this._pageNum);
+        const bouquetsPack = this._returnBouquetPack(this._pageNum);
         if (bouquetsPack) {
             for (const bouquet of bouquetsPack) {
                 // Формат caption: название, описание, стоимость
                 const photoCaption = `<b>${bouquet.name}</b>\n${bouquet.description}\n<i>Стоимость:</i> ${bouquet.price}₽`;
-                this.bouquetCatalogMessages = await ctx.telegram.sendPhoto(ctx.chat.id, bouquet.photo, {
+                const message = await ctx.telegram.sendPhoto(ctx.chat.id, bouquet.photo, {
                     caption: photoCaption,
                     parse_mode: 'HTML',
                     disable_notification: true,
@@ -95,13 +113,17 @@ class Bouquets extends Base {
                         Markup.callbackButton('Выбрать', bouquet.data),
                     ]),
                 });
+                this.messages = {
+                    messageType: 'bouquetCatalog',
+                    messageObj: message,
+                };
             }
             return true;
         }
     }
 
     // Выдает пачку объектов (5шт) за раз
-    _displayBouquetPack(pageNum) {
+    _returnBouquetPack(pageNum) {
         // pageNum передается в виде числа, воспринимаемого человеком,
         // которая затем обрабатывается для получения верного свойства массива
         if (pageNum - 1 < 0) {
@@ -115,17 +137,19 @@ class Bouquets extends Base {
 
     // Выводит сообщение с кнопками для перехода на другие страницы каталога
     async _displayPagination(ctx) {
-        this._bouquetsCatalogMessages.push(
-            await ctx.reply('Нажмите на одну из кнопок, чтобы переключить страницу',
-                Markup.inlineKeyboard([
-                    [Markup.callbackButton(`Страница: ${this._pageNum} из ${Math.ceil(this.availableBouquets.length / 5)}`, 'showPage')],
-                    [
-                        Markup.callbackButton('< Пред.', 'openPreviousPage'),
-                        Markup.callbackButton('След. >', 'openNextPage'),
-                    ],
-                ]).extra(),
-            ),
+        const message = await ctx.reply('Нажмите на одну из кнопок, чтобы переключить страницу',
+            Markup.inlineKeyboard([
+                [Markup.callbackButton(`Страница: ${this._pageNum} из ${Math.ceil(this.availableBouquets.length / 5)}`, 'showPage')],
+                [
+                    Markup.callbackButton('< Пред.', 'openPreviousPage'),
+                    Markup.callbackButton('След. >', 'openNextPage'),
+                ],
+            ]).extra(),
         );
+        this.messages = {
+            messageType: 'bouquetCatalog',
+            messageObj: message,
+        };
     }
 
     _getCatalogPages() {
@@ -133,14 +157,11 @@ class Bouquets extends Base {
     }
 
     _clearCatalogPageContent(ctx) {
-        this.bouquetCatalogMessages.forEach(({ message_id: id }) => {
-            try {
-                ctx.deleteMessage(id);
-            } catch (error) {
-                console.log(error);
-            }
-        });
-        this.bouquetCatalogMessages = 'clearArr';
+        this.removeMessages(ctx, 'bouquetCatalog');
+        this.messages = {
+            messageType: 'bouquetCatalog',
+            messageObj: 'clear',
+        };
     }
 
     showPage(ctx) {
@@ -186,8 +207,8 @@ class Bouquets extends Base {
         const { photo, name, price } = chosenBouquetCard;
         const caption = `Вы выбрали: \n<b>${name}</b>\n<i>Стоимость:</i> ${price}`;
         this.chosenBouquet = { photo, name, price };
-
-        this._confirmationMessages = await ctx.telegram.sendPhoto(ctx.chat.id, photoId, {
+        this.messagesToDelete = this.bouquetCatalogMessages;
+        const message = await ctx.telegram.sendPhoto(ctx.chat.id, photoId, {
             caption,
             parse_mode: 'HTML',
             reply_markup: Markup.inlineKeyboard([
@@ -195,6 +216,10 @@ class Bouquets extends Base {
                 [Markup.callbackButton('Выбрать другой', 'returnToCatalog')],
             ]),
         });
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
     }
 
     returnToCatalog(ctx) {
@@ -210,7 +235,7 @@ class Bouquets extends Base {
         // * title - название букета (String)
         // * photo - ссылку на фотографию букета (String)
         // * price - стоимость букета (Number)
-        this.messagesToDelete = await ctx.reply('Вы раньше выбирали этот букет:',
+        let message = await ctx.reply('Вы раньше выбирали этот букет:',
             Markup.keyboard([
                 ['📜 Меню заказа'],
                 ['📞 Связаться с магазином'],
@@ -220,7 +245,11 @@ class Bouquets extends Base {
             .resize()
             .extra(),
         );
-        this.messagesToDelete = await ctx.telegram.sendPhoto(ctx.chat.id, photo, {
+        this.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
+        message = await ctx.telegram.sendPhoto(ctx.chat.id, photo, {
             caption: cardCaption + confirmationMessage,
             parse_mode: 'HTML',
             reply_markup: Markup.inlineKeyboard([
@@ -228,6 +257,10 @@ class Bouquets extends Base {
                 [Markup.callbackButton('Выбрать другой', 'chooseDifferentBouquet')],
             ]),
         });
+        this.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
     }
 
     chooseDifferentBouquet(ctx) {
