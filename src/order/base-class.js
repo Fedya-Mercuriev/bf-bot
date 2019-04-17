@@ -14,6 +14,27 @@ class Base {
         this._statusMessages = [];
     }
 
+    // Сеттер получает объект с сообщением,
+    // извлекает из него id и кладет в соответствующую категорию
+    set messages(options) {
+        const { messageType, messageObj } = options;
+        if (messageObj !== 'clear') {
+            const { message_id: id } = messageObj;
+            this.messagesStorage[messageType].push(id);
+            console.log(`Добавили сообщение в: ${messageType}`);
+        } else {
+            if (messageType === 'all') {
+                const messagesStorage = Object.keys(this.messagesStorage);
+                messagesStorage.forEach((messageStorage) => {
+                    messageStorage.length = 0;
+                });
+                console.log('Очистили хранилище для сообщений');
+            }
+            this.messagesStorage[messageType].length = 0;
+            console.log(`Удалили сообщения из: ${messageType}`);
+        }
+    }
+
     get messagesToDelete() {
         return this._botSentMessages;
     }
@@ -22,6 +43,15 @@ class Base {
         if (message === 'clearArr') {
             this._botSentMessages.length = 0;
         } else {
+            // Этот блок выполнится если был передан массив сообщений
+            if (typeof message === 'object') {
+                const processedmessages = message.map((message) => {
+                    const { message_id: id } = message;
+                    return id;
+                });
+                this._botSentMessages = this._botSentMessages.concat(processedmessages);
+                return;
+            }
             const { message_id: id } = message;
             this._botSentMessages.push(id);
         }
@@ -64,15 +94,18 @@ class Base {
         return this[funcName](ctx);
     }
 
-    _removeMessages(ctx, propName) {
-        this[propName].forEach((id) => {
+    removeMessages(ctx, propName) {
+        this.messagesStorage[propName].forEach((id) => {
             try {
                 ctx.deleteMessage(id);
             } catch (e) {
                 console.log(e.message);
             }
         });
-        this[propName] = 'clearArr';
+        this.messages = {
+            messageType: propName,
+            messageObj: 'clear',
+        };
     }
 
     _removeConfirmationMessages(ctx) {
@@ -120,11 +153,11 @@ class Base {
         this[funcName](ctx);
     }
 
-    _leaveData(ctx, sceneName) {
+    _leaveData(ctx) {
         // Функция выводящая меню заказа (нужна для реакции на соответствующую callback-кнопку)
         // @sceneName – название сцены, которую будет покидать пользователь
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю меню заказа');
-        this.returnToMenu(ctx, sceneName);
+        this.returnToMenu(ctx, this.leaveDataInfo);
     }
 
     cleanScene(ctx) {
@@ -140,8 +173,9 @@ class Base {
                 console.log(error);
             }
         });
-        this._confirmationMessages = 'clearArr';
-        this.messagesToDelete = 'clearArr';
+        this.messages = {
+
+        }
     }
 
     async _requestContinue(ctx, additionalMsg, propNameToAccessParameters, customButtonsSet) {
