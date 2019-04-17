@@ -14,6 +14,10 @@ class Base {
         this._statusMessages = [];
     }
 
+    get messages() {
+        return this.messagesStorage;
+    }
+
     // Сеттер получает объект с сообщением,
     // извлекает из него id и кладет в соответствующую категорию
     set messages(options) {
@@ -144,10 +148,14 @@ class Base {
                 });
             }
         }
-        this._confirmationMessages = await ctx.reply(`Нажмите на кнопку ниже, чтобы продолжить заказ букета или ${additionalMsg}`,
+        const message = await ctx.reply(`Нажмите на кнопку ниже, чтобы продолжить заказ букета или ${additionalMsg}`,
             Markup.inlineKeyboard(buttonsArr).extra({
                 disable_notification: true,
             }));
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
     }
 
     returnToMenu(ctx, sceneName) {
@@ -161,8 +169,12 @@ class Base {
         ctx.scene.enter('orderScene');
     }
 
-    displayPhoneNumber(ctx) {
-        return Contacts.showPhoneNumber(ctx);
+    async displayPhoneNumber(ctx) {
+        const message = await Contacts.showPhoneNumber(ctx);
+        this.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
     }
 
     async cancelOrder(ctx) {
