@@ -62,8 +62,23 @@ class Shipping extends Base {
         if (this.shippingInfoProcessingStarted) {
             this.shippingInfoProcessingStarted = false;
         }
-
-        const message = await ctx.reply('Выберите как будете забирать букет 👇',
+        let message;
+        if (this.messages.intro.length === 0) {
+            message = await ctx.reply('Как будем забирать букет?',
+                Markup.keyboard([
+                    ['📜 Меню заказа'],
+                    ['📞 Связаться с магазином'],
+                    ['⛔ Отменить заказ'],
+                ])
+                .oneTime()
+                .resize()
+                .extra());
+            this.messages = {
+                messageType: 'intro',
+                messageObj: message,
+            };
+        }
+        message = await ctx.reply('Выберите как будете забирать букет 👇',
             Markup.inlineKeyboard([
                 [Markup.callbackButton('📦 Самовывоз', '_processPickUpQuery')],
                 [Markup.callbackButton('🛵 Доставка', '_requestAddress')],
