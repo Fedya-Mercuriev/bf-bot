@@ -189,9 +189,9 @@ class Bouquets extends Base {
         */
         // Извлечем информацию о букете из соответствующей карточки
         const chosenBouquetCard = this.availableBouquets[bouquetNumber];
-        const { photo, name, price } = chosenBouquetCard;
+        const { photo, name, description, price } = chosenBouquetCard;
         const caption = `Вы выбрали: \n<b>${name}</b>\n<i>Стоимость:</i> ${price}`;
-        this.chosenBouquet = { photo, name, price };
+        this.chosenBouquet = { photo, name, description, price };
         const message = await ctx.telegram.sendPhoto(ctx.chat.id, photoId, {
             caption,
             parse_mode: 'HTML',
