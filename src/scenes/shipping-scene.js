@@ -60,7 +60,7 @@ shippingValidation.on('message', async(ctx) => {
         } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
             validateShipping.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-            order.confirmCancelOrder(ctx);
+            order.cancelOrder(ctx, false);
         } else {
             validateShipping.validateShippingInfo(ctx, order.city);
         }
