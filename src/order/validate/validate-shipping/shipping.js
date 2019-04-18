@@ -7,7 +7,6 @@ const { Markup, Extra } = Telegraf;
 const Base = require('./../../base-class');
 const processPickUpQuery = require('./chunks/process-pickup-query');
 const { sendRequest, processResponse, prepareButtons } = require('./chunks/process-shipping-info');
-const order = require('./../../order');
 const citiesList = require('../../../../core');
 
 class Shipping extends Base {
@@ -55,6 +54,7 @@ class Shipping extends Base {
             this.shipping = undefined;
         }
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, 'Записываю способы доставки...');
+
         if (this.messages.confirmation.length) {
             this.removeMessagesOfSpecificType(ctx, 'confirmation');
         }
@@ -231,7 +231,7 @@ class Shipping extends Base {
 
     _setShippingCity(ctx, city) {
         ctx.deleteMessage(ctx.update.callback_query.message.message_id);
-        order.city = city;
+        this.city = city;
         this.requestShipping(ctx);
     }
 

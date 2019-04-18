@@ -5,7 +5,6 @@
 /* eslint-disable indent */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-const order = require('./../../order');
 const Base = require('./../../base-class');
 
 class Bouquets extends Base {
