@@ -7,7 +7,7 @@ const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
 const order = require('../order/order');
-const validateDate = require('../order/validate/validate-date/date');
+const { validateDate, ValidateDate } = require('../order/validate/validate-date/date');
 const dateValidation = new Scene('dateValidation');
 
 // Команды для сцены
@@ -15,7 +15,7 @@ dateValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     let { orderDate } = order.orderInfo;
     if (orderDate !== undefined) {
-        orderDate = validateDate.russifyDate(new Date(orderDate));
+        orderDate = ValidateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
     } else {
         validateDate.requestDate(ctx);
