@@ -10,6 +10,7 @@ const Base = require('./base-class');
 const orderInfo = require('./order-info');
 const { ValidateDate } = require('./../order/validate/validate-date/date');
 const { Time } = require('./../order/validate/validate-time/time');
+const generateInvoice = require('./invoice');
 
 class Order extends Base {
     constructor() {
@@ -19,6 +20,7 @@ class Order extends Base {
         this.messagesStorage = {
             intro: [],
             confirmation: [],
+            invoice: [],
             other: [],
         };
         this.welcomeMsg = 'Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅';
@@ -112,7 +114,7 @@ class Order extends Base {
         }
     }
 
-    async displayFinalOrderInfo(ctx, comment = undefined) {
+    async displayFinalOrderInfo(ctx) {
         const { orderDate, orderTime, shipping, bouquet, contactInfo } = orderInfo.orderInfo;
         const { photo, name, price } = bouquet;
         // Обработаем дату
@@ -122,12 +124,7 @@ class Order extends Base {
         // Обработаем информацию о доставке
         const shippingInfo = (shipping === false) ? 'самовывоз' : shipping;
         // Соберем всю обработанную информацию
-        let bouquetCaption;
-        if (comment) {
-            bouquetCaption = `<b>Дата:</b> ${finalDate};\n<b>Время:</b> ${finalTime};\n<b>Доставка:</b> ${shippingInfo};\n<b>Контактный телефон:</b> ${contactInfo};\n<b>Название букета:</b> ${name};\n<b>Стоимость:</b> ${price};<b>Комментарий:</b> ${comment}`;
-        } else {
-            bouquetCaption = `<b>Дата:</b> ${finalDate};\n<b>Время:</b> ${finalTime};\n<b>Доставка:</b> ${shippingInfo};\n<b>Контактный телефон:</b> ${contactInfo};\n<b>Название букета:</b> ${name};\n<b>Стоимость:</b> ${price};`;
-        }
+        const bouquetCaption = `<b>Дата:</b> ${finalDate};\n<b>Время:</b> ${finalTime};\n<b>Доставка:</b> ${shippingInfo};\n<b>Контактный телефон:</b> ${contactInfo};\n<b>Название букета:</b> ${name};\n<b>Стоимость:</b> ${price};`;
         let returnedMessage = await ctx.reply('Пожалуйста, проверьте введенную информацию!');
         this.messages = {
             messageType: 'confirmation',
@@ -137,8 +134,8 @@ class Order extends Base {
             caption: bouquetCaption,
             parse_mode: 'HTML',
             reply_markup: Markup.inlineKeyboard([
-                [Markup.callbackButton('✅ Да, все правильно!', 'showInvoice:null')],
-                [Markup.callbackButton('✏️ Мне нужно кое-что поправить!', 'continueOrder:null')],
+                [Markup.callbackButton('✅ Да, все правильно!', 'askPayment:null')],
+                [Markup.callbackButton('✏️ Мне нужно кое-что поправить!', 'reviewInfo:null')],
             ]),
         });
         this.messages = {
@@ -147,21 +144,10 @@ class Order extends Base {
         };
     }
 
-    // async confirmCancelOrder(ctx) {
-    //     const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
-    //         Markup.inlineKeyboard([
-    //             [Markup.callbackButton('❌ Отменить заказ', 'cancelOrder:true')],
-    //             [Markup.callbackButton('🔝 Продолжить заказ', 'continueOrder:null')],
-    //         ]).extra());
-    //     this.messages = {
-    //         messageType: 'confirmation',
-    //         messageObj: returnedMessage,
-    //     };
-    // }
-
-    async continueOrder(ctx) {
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '🎉 Продолжаем заказ!');
-        this.removeMessagesOfSpecificType(ctx, 'confirmation');
+    async reviewInfo(ctx) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю меню заказа...');
+        await this.cleanScene(ctx);
+        await this.displayInterface(ctx);
         const returnedMessage = await ctx.reply('Кликните на пункт меню, информацию в котором вы хотите исправить.');
         this.messages = {
             messageType: 'other',
@@ -169,7 +155,73 @@ class Order extends Base {
         };
     }
 
+    async askPayment(ctx, action = undefined) {
+        if (action === 'reviewPaymentMethod') {
+            ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+        }
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю варианты платежей...');
+        const returnedMessage = ctx.reply('Как будете платить за букет?\nПри оплате в Телеграме можно внести предоплату',
+            Markup.inlineKeyboard([
+                [Markup.callbackButton('✈️ В Телеграме', 'showInvoice:null')],
+                [Markup.callbackButton('🏭 В магазине', 'postOrder:null')],
+            ]).extra());
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: returnedMessage,
+        };
+    }
+
+    async showInvoice(ctx) {
+        const { replyWithInvoice } = ctx;
+        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Подготавливаю чек...');
+        const { bouquet, shipping } = orderInfo.orderInfo;
+        const invoice = generateInvoice({
+            bouquet,
+            shipping,
+        });
+        const replyOptions = Markup.inlineKeyboard([
+            [Markup.payButton('Оплатить заказ')],
+            [Markup.callbackButton('Выбрать другой способ оплаты', 'askPayment:reviewPaymentMethod')],
+        ]).extra();
+        const returnedMessage = await replyWithInvoice(invoice, replyOptions);
+        this.messages = {
+            messageType: 'invoice',
+            messageObj: returnedMessage,
+        };
+    }
+
+    answerPrecheckout({ answerPreCheckoutQuery }) {
+        answerPreCheckoutQuery(true);
+    }
+
+    async postOrder(ctx) {
+        // Распарсим информацию о заказе
+        const { orderDate, orderTime, bouquet, shipping, contactInfo } = orderInfo.orderInfo;
+        const { name, photo, price } = bouquet;
+        let cardCaption;
+        if (shipping !== false) {
+            cardCaption = `ℹ️ <b>Название:</b> ${name};\n💰 <b>Стоимость:</b> ${price};\n🗓 <b>Сделать и доставить заказ к:</b> ${orderDate}-${orderTime};\n📲 <b>Номер телефона клиента:</b> ${contactInfo}`;
+        }
+        cardCaption = `ℹ️ <b>Название:</b> ${name};\n<b>Стоимость:</b> ${price};\n🗓 <b>Сделать заказ к:</b> ${ValidateDate.russifyDate(orderDate)}-${Time.convertTimeToReadableForm(orderTime)};\n📲 <b>Номер телефона клиента:</b> ${contactInfo}`;
+        await ctx.telegram.sendMessage(process.env.TEST_ADMIN_GROUP_ID, '🎉 Новый заказ! 🎉');
+        await ctx.telegram.sendPhoto(process.env.TEST_ADMIN_GROUP_ID, photo,
+            Markup.inlineKeyboard([
+                [Markup.callbackButton('✅ Заказ готов', `orderDone:${ctx.chat.id}`)],
+            ]).extra({
+                caption: cardCaption,
+                parse_mode: 'HTML',
+            }));
+        ctx.scene.leave(ctx.scene.id);
+    }
+
+    async continueOrder(ctx) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '🎉 Продолжаем заказ!');
+        this.removeMessagesOfSpecificType(ctx, 'confirmation');
+    }
+
     async cancelOrder(ctx, cancelConfirmed = false) {
+        cancelConfirmed = (cancelConfirmed === 'true') ? true : false;
         if (!cancelConfirmed) {
             // Этот блок выполнится если была вызвана функция отмена заказа
             const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
