@@ -6,143 +6,49 @@
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
 const Invoice = require('./invoice');
-class Order {
+const Base = require('./base-class');
+const orderInfo = require('./order-info');
+const { ValidateDate } = require('./../order/validate/validate-date/date');
+const { Time } = require('./../order/validate/validate-time/time');
+
+class Order extends Base {
     constructor() {
+        super();
         this.orderIsInitialised = false;
-        this.info = {
-            contactInfo: undefined,
-            orderDate: undefined,
-            orderTime: undefined,
-            bouquet: undefined,
-            shipping: undefined,
-        };
+        this.orderConfirmationIsDisplayed = false;
         this.messagesStorage = {
             intro: [],
             confirmation: [],
             other: [],
         };
         this.welcomeMsg = 'Выберите любой пункт в меню и следуйте инструкциям.\nПри правильном заполнении данных напротив выбранного пукта меня будет стоять ✅';
-        // Инвойс формируется в конце
-        this.invoice = null;
         this.buttons = {
             orderDate: {
                 emoji: '📅',
                 text: 'Дата',
                 callback_data: 'dateValidation',
-                // Раньше было this.orderInfo.orderDate
-                data: this.info.orderDate
             },
             shipping: {
                 emoji: '🛵',
                 text: 'Способ получения букета',
                 callback_data: 'shippingValidation',
-                data: this.info.shipping
             },
             orderTime: {
                 emoji: '⏱',
                 text: 'Время',
                 callback_data: 'timeValidation',
-                data: this.info.orderTime
             },
             bouquet: {
                 emoji: '💐',
                 text: 'Выбор букета',
                 callback_data: 'bouqtypeValidation',
-                data: this.info.bouquet
             },
             contactInfo: {
                 emoji: '📲',
                 text: 'Контактные данные',
                 callback_data: 'contactInfoValidation',
-                data: this.info.contactInfo
             },
         };
-    }
-
-    get messages() {
-        return this.messagesStorage;
-    }
-
-    // Сеттер получает объект с сообщением,
-    // извлекает из него id и кладет в соответствующую категорию
-    set messages(options) {
-        const { messageType, messageObj } = options;
-        if (messageObj !== 'clear') {
-            const { message_id: id } = messageObj;
-            this.messagesStorage[messageType].push(id);
-            console.log(`Добавили сообщение в: ${messageType}`);
-        } else {
-            if (messageType === 'all') {
-                const messagesStorage = Object.keys(this.messagesStorage);
-                messagesStorage.forEach((messageStorage) => {
-                    messagesStorage[messageStorage].length = 0;
-                });
-                console.log('Очистили хранилище для сообщений');
-            }
-            this.messagesStorage[messageType].length = 0;
-            console.log(`Удалили сообщения из: ${messageType}`);
-        }
-    }
-
-    get orderInfo() {
-        return this.info;
-    }
-
-    set orderInfo(settings) {
-        const [prop, val] = settings;
-        this.info[prop] = val;
-    }
-
-    russifyDate(date) {
-        // Получает date в формате миллисекунд
-        const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-        const usedDate = new Date(date);
-        return `${usedDate.getDate()} ${months[usedDate.getMonth()]} ${usedDate.getFullYear()} года`;
-    }
-
-    convertTimeToReadableForm(time) {
-        let minutes = new Date(time).getMinutes().toString();
-        if (minutes.length === 1) {
-            minutes = `0${minutes}`;
-        }
-        return `${new Date(time).getHours()}:${minutes}`;
-    }
-
-    removeMessagesOfSpecificType(ctx, propName) {
-        this.messagesStorage[propName].forEach((id) => {
-            try {
-                ctx.deleteMessage(id);
-            } catch (e) {
-                console.log(e.message);
-            }
-        });
-        this.messages = {
-            messageType: propName,
-            messageObj: 'clear',
-        };
-    }
-
-    cleanScene(ctx) {
-        const messagesBoxes = Object.keys(this.messagesStorage);
-        ctx.scene.msgToDelete = [];
-        // Склеим все массивы в один большой, по которому будем проходиться и удалять сообщения
-        messagesBoxes.forEach((messageStorage) => {
-            if (this.messagesStorage[messageStorage].length !== 0) {
-                ctx.scene.msgToDelete = ctx.scene.msgToDelete.concat(this.messagesStorage[messageStorage]);
-                // После добавления массива - очистим его
-                this.messages = {
-                    messageType: messageStorage,
-                    messageObj: 'clear',
-                };
-            }
-        });
-        ctx.scene.msgToDelete.forEach((id) => {
-            try {
-                ctx.deleteMessage(id);
-            } catch (error) {
-                console.log(error);
-            }
-        });
     }
 
     async launch(ctx) {
@@ -155,7 +61,7 @@ class Order {
         for (const prop in this.buttons) {
             if (this.buttons.hasOwnProperty(prop)) {
                 const result = [];
-                if (this.info[prop] !== undefined) {
+                if (orderInfo.orderInfo[prop] !== undefined) {
                     result.push(Markup.callbackButton(`✅ ${this.buttons[prop].text}`, `${this.buttons[prop].callback_data}`));
                     buttonsArr.push(result);
                 } else {
@@ -206,28 +112,22 @@ class Order {
         }
     }
 
-    invokeFunction(passedArgs, ctx) {
-        if (passedArgs.indexOf(':') !== -1) {
-            // В первой ячейке должно лежать имя функции, которая будет вызвана
-            const args = passedArgs.split(':');
-            const funcName = args.splice(0, 1);
-            return this[funcName](ctx, ...args);
-        }
-        const funcName = passedArgs;
-        return this[funcName](ctx);
-    }
-
-    async displayFinalOrderInfo(ctx) {
-        const { orderDate, orderTime, shipping, bouquet, contactInfo } = this.orderInfo;
+    async displayFinalOrderInfo(ctx, comment = undefined) {
+        const { orderDate, orderTime, shipping, bouquet, contactInfo } = orderInfo.orderInfo;
         const { photo, name, price } = bouquet;
         // Обработаем дату
-        const finalDate = this.russifyDate(orderDate);
+        const finalDate = ValidateDate.russifyDate(orderDate);
         // Обработаем время
-        const finalTime = this.convertTimeToReadableForm(orderTime);
+        const finalTime = Time.convertTimeToReadableForm(orderTime);
         // Обработаем информацию о доставке
         const shippingInfo = (shipping === false) ? 'самовывоз' : shipping;
         // Соберем всю обработанную информацию
-        const bouquetCaption = `<b>Дата:</b> ${finalDate};\n<b>Время:</b> ${finalTime};\n<b>Доставка:</b> ${shippingInfo};\n<b>Контактный телефон:</b> ${contactInfo};\n<b>Название букета:</b> ${name};\n<b>Стоимость:</b> ${price};`;
+        let bouquetCaption;
+        if (comment) {
+            bouquetCaption = `<b>Дата:</b> ${finalDate};\n<b>Время:</b> ${finalTime};\n<b>Доставка:</b> ${shippingInfo};\n<b>Контактный телефон:</b> ${contactInfo};\n<b>Название букета:</b> ${name};\n<b>Стоимость:</b> ${price};<b>Комментарий:</b> ${comment}`;
+        } else {
+            bouquetCaption = `<b>Дата:</b> ${finalDate};\n<b>Время:</b> ${finalTime};\n<b>Доставка:</b> ${shippingInfo};\n<b>Контактный телефон:</b> ${contactInfo};\n<b>Название букета:</b> ${name};\n<b>Стоимость:</b> ${price};`;
+        }
         let returnedMessage = await ctx.reply('Пожалуйста, проверьте введенную информацию!');
         this.messages = {
             messageType: 'confirmation',
@@ -247,39 +147,57 @@ class Order {
         };
     }
 
-    async confirmCancelOrder(ctx) {
-        const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
-            Markup.inlineKeyboard([
-                [Markup.callbackButton('❌ Отменить заказ', 'cancelOrder:null')],
-                [Markup.callbackButton('🔝 Продолжить заказ', 'continueOrder:null')],
-            ]).extra());
-        this.messages = {
-            messageType: 'confirmation',
-            messageObj: returnedMessage,
-        };
-    }
+    // async confirmCancelOrder(ctx) {
+    //     const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
+    //         Markup.inlineKeyboard([
+    //             [Markup.callbackButton('❌ Отменить заказ', 'cancelOrder:true')],
+    //             [Markup.callbackButton('🔝 Продолжить заказ', 'continueOrder:null')],
+    //         ]).extra());
+    //     this.messages = {
+    //         messageType: 'confirmation',
+    //         messageObj: returnedMessage,
+    //     };
+    // }
 
-    continueOrder(ctx) {
+    async continueOrder(ctx) {
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '🎉 Продолжаем заказ!');
-        // ctx.deleteMessage(ctx.update.callback_query.message.message_id);
         this.removeMessagesOfSpecificType(ctx, 'confirmation');
-    }
-
-    async cancelOrder(ctx) {
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '😔 Надеюсь на ваше скорое возвращение');
-        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
-        const returnedMessage = await ctx.reply('❌ Заказ отменен!');
+        const returnedMessage = await ctx.reply('Кликните на пункт меню, информацию в котором вы хотите исправить.');
         this.messages = {
             messageType: 'other',
             messageObj: returnedMessage,
         };
-        // Сбросим все значения в информации о заказе
-        for (const prop in this.orderInfo) {
-            if (this.orderInfo[prop] !== undefined) {
-                this.orderInfo = [prop, undefined];
+    }
+
+    async cancelOrder(ctx, cancelConfirmed = false) {
+        if (!cancelConfirmed) {
+            // Этот блок выполнится если была вызвана функция отмена заказа
+            const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
+                Markup.inlineKeyboard([
+                    [Markup.callbackButton('❌ Отменить заказ', 'cancelOrder:true')],
+                    [Markup.callbackButton('🔝 Продолжить заказ', 'continueOrder:null')],
+                ]).extra());
+            this.messages = {
+                messageType: 'confirmation',
+                messageObj: returnedMessage,
+            };
+        } else {
+            // Этот блок выполнится если отмена заказа была подстверждена
+            ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '😔 Надеюсь на ваше скорое возвращение');
+            ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+            const returnedMessage = await ctx.reply('❌ Заказ отменен!');
+            this.messages = {
+                messageType: 'other',
+                messageObj: returnedMessage,
+            };
+            // Сбросим все значения в информации о заказе
+            for (const prop in orderInfo.orderInfo) {
+                if (orderInfo.orderInfo[prop] !== undefined) {
+                    orderInfo.orderInfo = [prop, undefined];
+                }
             }
+            ctx.scene.leave(ctx.scene.current.id);
         }
-        ctx.scene.leave(ctx.scene.current.id);
     }
 }
 
