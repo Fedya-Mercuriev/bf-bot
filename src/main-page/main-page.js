@@ -1,5 +1,5 @@
 const Telegraf = require('telegraf');
-const {Extra, Markup} = Telegraf;
+const { Extra, Markup } = Telegraf;
 
 class MainPage {
     constructor() {
@@ -27,5 +27,4 @@ class MainPage {
     }
 }
 
-module.exports = new  MainPage();
-
+module.exports = new MainPage();
