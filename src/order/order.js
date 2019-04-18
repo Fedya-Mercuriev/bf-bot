@@ -11,6 +11,7 @@ const orderInfo = require('./order-info');
 const { ValidateDate } = require('./../order/validate/validate-date/date');
 const { Time } = require('./../order/validate/validate-time/time');
 const generateInvoice = require('./invoice');
+const MainPage = require('./../main-page/main-page');
 
 class Order extends Base {
     constructor() {
@@ -204,6 +205,21 @@ class Order extends Base {
             cardCaption = `ℹ️ <b>Название:</b> ${name};\n💰 <b>Стоимость:</b> ${price};\n🗓 <b>Сделать и доставить заказ к:</b> ${orderDate}-${orderTime};\n📲 <b>Номер телефона клиента:</b> ${contactInfo}`;
         }
         cardCaption = `ℹ️ <b>Название:</b> ${name};\n<b>Стоимость:</b> ${price};\n🗓 <b>Сделать заказ к:</b> ${ValidateDate.russifyDate(orderDate)}-${Time.convertTimeToReadableForm(orderTime)};\n📲 <b>Номер телефона клиента:</b> ${contactInfo}`;
+        // Уведомим пользователя о том, что заказ был отправлен
+        try {
+            const returnedMessage = await ctx.reply('✅ Ваш заказ был отправлен!');
+            this.messages = {
+                messageType: 'other',
+                messageObj: returnedMessage,
+            };
+        } catch (e) {
+            const returnedMessage = await ctx.reply('⛔️ Упс! Что-то пошло не так! Попробуйте еще раз.');
+            this.messages = {
+                messageType: 'other',
+                messageObj: returnedMessage,
+            };
+        }
+        // Информация о заказе отправялется в админ группу
         await ctx.telegram.sendMessage(process.env.TEST_ADMIN_GROUP_ID, '🎉 Новый заказ! 🎉');
         await ctx.telegram.sendPhoto(process.env.TEST_ADMIN_GROUP_ID, photo,
             Markup.inlineKeyboard([
@@ -212,6 +228,7 @@ class Order extends Base {
                 caption: cardCaption,
                 parse_mode: 'HTML',
             }));
+        MainPage.displayMainPage(ctx, 'Вы в главном меню!');
         ctx.scene.leave(ctx.scene.id);
     }
 
