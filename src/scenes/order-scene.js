@@ -9,6 +9,7 @@ const Scene = require('telegraf/scenes/base');
 const orderInfo = require('./../order/order-info');
 const order = require('../order/order');
 const orderScene = new Scene('orderScene');
+const bot = require('./../../core');
 
 function checkIfAllInfoComplete(infoObj) {
     let result = true;
@@ -44,18 +45,25 @@ orderScene.on('callback_query', (ctx) => {
 
 orderScene.on('message', async(ctx) => {
     if (ctx.updateSubTypes[0] !== 'text') {
-        const message = await ctx.reply('⛔️ Пожалуйста, выберите пункт в меню!');
-        order.messages = {
-            messageType: 'other',
-            messageObj: message,
-        };
+        if (ctx.updateSubTypes[0] === 'successful_payment') {
+            order.postOrder(ctx);
+            ctx.scene.leave(ctx.scene.id);
+        } else if (ctx.updateSubTypes[0] === 'pre_checkout_query') {
+            return order.answerPrecheckout(ctx);
+        } else {
+            const message = await ctx.reply('⛔️ Пожалуйста, выберите пункт в меню!');
+            order.messages = {
+                messageType: 'other',
+                messageObj: message,
+            };
+        }
     } else {
         if (ctx.update.message.text.match(/меню заказа/i)) {
             order.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
         } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
             order.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-            order.confirmCancelOrder(ctx);
+            order.cancelOrder(ctx, false);
         } else if (order.orderConfirmationIsDisplayed) {
             order.displayFinalOrderInfo(ctx, ctx.update.message.text);
         } else {
