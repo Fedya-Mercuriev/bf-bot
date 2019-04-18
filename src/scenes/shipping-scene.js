@@ -24,8 +24,8 @@ shippingValidation.enter(async(ctx) => {
         .oneTime()
         .resize()
         .extra());
-    this.messages = {
-        messageType: 'other',
+    validateShipping.messages = {
+        messageType: 'intro',
         messageObj: message,
     };
 
