@@ -5,7 +5,7 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const order = require('../order/order');
-const validateTime = require('./../order/validate/validate-time/time');
+const { validateTime } = require('./../order/validate/validate-time/time');
 const { leave } = Stage;
 
 const timeValidation = new Scene('timeValidation');
