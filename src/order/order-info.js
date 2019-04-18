@@ -1,24 +1,25 @@
+/* eslint-disable indent */
 class OrderInfo {
     constructor() {
         this.info = {
             contactInfo: undefined,
             orderDate: undefined,
             orderTime: undefined,
-            // orderDateInNumbers: undefined,
-            bouquetType: undefined,
+            bouquet: undefined,
             shipping: undefined,
-            bouquetPrice: undefined
         };
     }
 
-    get getOrderInfo() {
+    get orderInfo() {
         return this.info;
     }
 
-    set setOrderInfo(settings) {
-        let [prop, val] = settings;
+    set orderInfo(settings) {
+        const [prop, val] = settings;
         this.info[prop] = val;
     }
 }
 
-module.exports = new OrderInfo();
+const orderInfo = new OrderInfo();
+
+module.exports = orderInfo;
