@@ -4,7 +4,6 @@
 /* eslint-disable class-methods-use-this */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-const request = require('request-promise');
 const Base = require('./../../base-class');
 const { sendRequest, processResponse, prepareButtons } = require('./chunks/process-shipping-info');
 const order = require('./../../order');
@@ -14,17 +13,17 @@ class Shipping extends Base {
     constructor() {
         super();
         this.shippingAddress = undefined;
-        // this.requestOptions = {
-        //     uri: `https://geocode-maps.yandex.ru/1.x/?apikey=${process.env.MAPS_API_KEY}&format=json`,
-        //     json: true,
-        // };
         // Операции, лежащие в других файлах
         this._sendRequest = sendRequest;
         this._processResponse = processResponse;
         this._prepareButtons = prepareButtons;
         // Прочие свойства
         this.city = null;
+        // От знаечния этой переменной зависит будет ли обрабатываться сообщение с адресом
+        // или будет выведена ошибка, требующая сперва выбрать способ доставки
         this.shippingInfoProcessingStarted = false;
+        //  В этой переменной хранятся кнопки, которые были собраны из найденных адресов
+        // При вводе нового адреса, кнопки перезаписываются
         this._tempButtonsStorage = [];
         this.messagesStorage = {
             intro: [],
@@ -64,7 +63,7 @@ class Shipping extends Base {
             this.shippingInfoProcessingStarted = false;
         }
 
-        let message = await ctx.reply('Выберите как будете забирать букет 👇',
+        const message = await ctx.reply('Выберите как будете забирать букет 👇',
             Markup.inlineKeyboard([
                 [Markup.callbackButton('📦 Самовывоз', '_processPickUpQuery')],
                 [Markup.callbackButton('🛵 Доставка', '_requestAddress')],
@@ -195,6 +194,9 @@ class Shipping extends Base {
             })
             // Что-то пошло не так – выведем сообщение об ошибке
             .catch(async(e) => {
+                if (this.messages.statusMsg.length !== 0) {
+                    this.removeMessagesOfSpecificType(ctx, 'statusMsg');
+                }
                 const msg = await ctx.reply(e.message);
                 this.messages = {
                     messageType: 'other',
@@ -228,7 +230,7 @@ class Shipping extends Base {
     _setShippingCity(ctx, city) {
         ctx.deleteMessage(ctx.update.callback_query.message.message_id);
         order.city = city;
-        this.shippingCity = city;
+        // this.shippingCity = city;
         this.requestShipping(ctx);
     }
 
