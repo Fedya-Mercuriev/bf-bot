@@ -30,7 +30,7 @@ contactInfoValidation.on('message', async(ctx) => {
         } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
             validateContactInfo.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-            order.confirmCancelOrder(ctx);
+            order.cancelOrder(ctx, false);
         } else {
             validateContactInfo.identifyDataType(ctx, ctx.updateSubTypes[0]);
         }
