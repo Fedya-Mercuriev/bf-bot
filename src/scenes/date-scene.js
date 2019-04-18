@@ -39,7 +39,7 @@ dateValidation.on('message', async(ctx) => {
     } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
         validateDate.displayPhoneNumber(ctx);
     } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-        order.confirmCancelOrder(ctx);
+        order.cancelOrder(ctx, false);
     } else {
         validateDate.validateDate(ctx, ctx.message.text);
     }
