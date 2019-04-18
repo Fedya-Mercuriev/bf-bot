@@ -5,6 +5,7 @@
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
 const Base = require('./../../base-class');
+const processPickUpQuery = require('./chunks/process-pickup-query');
 const { sendRequest, processResponse, prepareButtons } = require('./chunks/process-shipping-info');
 const order = require('./../../order');
 const citiesList = require('../../../../core');
@@ -14,6 +15,7 @@ class Shipping extends Base {
         super();
         this.shippingAddress = undefined;
         // Операции, лежащие в других файлах
+        this._processPickUpQuery = processPickUpQuery;
         this._sendRequest = sendRequest;
         this._processResponse = processResponse;
         this._prepareButtons = prepareButtons;
@@ -103,25 +105,6 @@ class Shipping extends Base {
         };
     }
 
-    async _processPickUpQuery(ctx) {
-        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Минуточку');
-        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
-        this.shippingAddress = false;
-        const message = await ctx.replyWithHTML('Вы выбрали самовывоз.\n📍 Адрес магазина: <b>Фрунзе проспект, 46</b>');
-        this.messages = {
-            messageType: 'confirmation',
-            messageObj: message,
-        };
-        this._requestContinue(
-            ctx,
-            'другой способ доставки',
-            'saveDataKeys', {
-                text: 'Выбрать другой способ доставки',
-                functionName: 'requestShipping',
-            },
-        );
-    }
-
     _identifyMessageType(ctx) {
         return new Promise((resolve) => {
             if (ctx.updateSubTypes.indexOf('location') !== -1) {
@@ -135,6 +118,28 @@ class Shipping extends Base {
                     msgType: 'text',
                 });
             }
+        });
+    }
+
+    displayButtons(ctx, buttonsArray) {
+        buttonsArray.forEach(async(button) => {
+            const { btnText, position } = button;
+            ctx.reply(`🏡 ${btnText}`,
+                Markup.inlineKeyboard([
+                    Markup.callbackButton('Это мой адрес', `_setShippingInfo:${position}`),
+                ]).extra({
+                    disable_notification: true,
+                }),
+            ).then((returnedMessage) => {
+                this.messages = {
+                    messageType: 'addressButtons',
+                    messageObj: returnedMessage,
+                };
+                this.messages = {
+                    messageType: 'other',
+                    messageObj: returnedMessage,
+                };
+            });
         });
     }
 
@@ -187,25 +192,7 @@ class Shipping extends Base {
                     messageObj: msg,
                 };
                 // Выведем кнопки на экран
-                buttonsArr.forEach(async(button) => {
-                    const { btnText, position } = button;
-                    ctx.reply(`🏡 ${btnText}`,
-                        Markup.inlineKeyboard([
-                            Markup.callbackButton('Это мой адрес', `_setShippingInfo:${position}`),
-                        ]).extra({
-                            disable_notification: true,
-                        }),
-                    ).then((returnedMessage) => {
-                        this.messages = {
-                            messageType: 'addressButtons',
-                            messageObj: returnedMessage,
-                        };
-                        this.messages = {
-                            messageType: 'other',
-                            messageObj: returnedMessage,
-                        };
-                    });
-                });
+                this.displayButtons(ctx, buttonsArr);
             })
             // Что-то пошло не так – выведем сообщение об ошибке
             .catch(async(e) => {
@@ -245,7 +232,6 @@ class Shipping extends Base {
     _setShippingCity(ctx, city) {
         ctx.deleteMessage(ctx.update.callback_query.message.message_id);
         order.city = city;
-        // this.shippingCity = city;
         this.requestShipping(ctx);
     }
 
@@ -262,48 +248,23 @@ class Shipping extends Base {
 
     async confirmShippingOverwrite(ctx, shipping) {
         // Если был выбран самовывоз или указан адрес в виде строки
-        if (shipping === false || typeof shipping !== 'object') {
-            shipping = (shipping === false) ? 'Самовывоз' : `(Доставка) ${shipping}`;
-            let message = await ctx.replyWithHTML(`⚠️ Вы ранее выбрали этот способ доставки: <b>${shipping}</b>`);
-            this.messages = {
-                messageType: 'confirmation',
-                messageObj: message,
-            };
-            message = await ctx.reply('Перезаписать его или оставить?',
-                Markup.inlineKeyboard([
-                    [Markup.callbackButton('Перезаписать', '_overwriteData:requestShipping')],
-                    [Markup.callbackButton('Оставить', '_leaveData:shippingValidation')],
-                ]).extra({
-                    disable_notification: true,
-                }));
-            this.messages = {
-                messageType: 'confirmation',
-                messageObj: message,
-            };
-            // Если была отправлена геопозиция
-        } else {
-            const [lat, lon] = shipping;
-            let message = await ctx.reply('⚠️ Вы ранее выбрали этот способ доставки:');
-            this.messages = {
-                messageType: 'confirmation',
-                messageObj: message,
-            };
-            message = await ctx.replyWithLocation(lat, lon);
-            this.messages = {
-                messageType: 'confirmation',
-                messageObj: message,
-            };
-            message = await ctx.reply('Перезаписать его или оставить?', Markup.inlineKeyboard([
+        shipping = (shipping === false) ? 'Самовывоз' : `(Доставка) ${shipping}`;
+        let message = await ctx.replyWithHTML(`⚠️ Вы ранее выбрали этот способ доставки: <b>${shipping}</b>`);
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
+        message = await ctx.reply('Перезаписать его или оставить?',
+            Markup.inlineKeyboard([
                 [Markup.callbackButton('Перезаписать', '_overwriteData:requestShipping')],
                 [Markup.callbackButton('Оставить', '_leaveData:shippingValidation')],
             ]).extra({
                 disable_notification: true,
             }));
-            this.messages = {
-                messageType: 'confirmation',
-                messageObj: message,
-            };
-        }
+        this.messages = {
+            messageType: 'confirmation',
+            messageObj: message,
+        };
     }
 
     get shippingInfo() {
