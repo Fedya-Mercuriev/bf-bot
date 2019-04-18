@@ -36,7 +36,7 @@ class ValidateDate extends Base {
         this.overwriteDataInfo = 'requestDate';
     }
 
-    russifyDate(date) {
+    static russifyDate(date) {
         // Получает date в формате миллисекунд
         const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         const usedDate = new Date(date);
@@ -72,7 +72,7 @@ class ValidateDate extends Base {
             this.removeMessagesOfSpecificType(ctx, 'confirmation');
         }
         // Выводит сообщение с подтверждением
-        const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.date)}`);
+        const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.date)}`);
         this.messages = {
             messageType: 'confirmation',
             messageObj: message,
@@ -131,7 +131,7 @@ class ValidateDate extends Base {
                     this.removeMessagesOfSpecificType(ctx, 'confirmation');
                 }
 
-                const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
                 this.messages = {
                     messageType: 'confirmation',
                     messageObj: message,
@@ -144,7 +144,7 @@ class ValidateDate extends Base {
                 }
                 if (error.message === 'сегодня') {
                     this._setTempDate(this._calculateDate(true));
-                    const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                    const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
                     this.messages = {
                         messageType: 'confirmation',
                         messageObj: message,
@@ -153,7 +153,7 @@ class ValidateDate extends Base {
 
                 } else if (error.message === 'завтра') {
                     this._setTempDate(this._calculateDate(false));
-                    const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${this.russifyDate(this.tempDate)}`);
+                    const message = await ctx.reply(`✅ Хорошо, букет будет готов к ${ValidateDate.russifyDate(this.tempDate)}`);
                     this.messages = {
                         messageType: 'confirmation',
                         messageObj: message,
@@ -205,4 +205,4 @@ class ValidateDate extends Base {
 
 const validateDate = new ValidateDate();
 
-module.exports = validateDate;
+module.exports = { validateDate, ValidateDate };
