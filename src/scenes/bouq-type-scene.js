@@ -122,7 +122,7 @@ bouqtypeValidation.on('message', async(ctx) => {
         } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
             bouquets.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
-            ctx.reply('Отменяю заказ!(нет)');
+            order.confirmCancelOrder(ctx);
         } else {
             const message = await ctx.reply('⛔ Извините, в данном разделе я не воспринимаю текст.\nВыберите нужный вам тип букета, кликнув по одной из кнопок "Выбрать"');
             bouquets.messages = {

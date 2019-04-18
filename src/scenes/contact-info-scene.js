@@ -25,7 +25,7 @@ contactInfoValidation.on('message', async(ctx) => {
         } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
             validateContactInfo.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
-            validateContactInfo.cancelOrder(ctx);
+            order.confirmCancelOrder(ctx);
         } else {
             validateContactInfo.identifyDataType(ctx, ctx.updateSubTypes[0]);
         }

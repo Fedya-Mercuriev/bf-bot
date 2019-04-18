@@ -36,7 +36,7 @@ timeValidation.on('message', (ctx) => {
         } else if (messageText.match(/Связаться с магазином/i)) {
             validateTime.displayPhoneNumber(ctx);
         } else if (messageText.match(/Отменить заказ/i)) {
-            ctx.reply('Отменяем заказ (пока нет)');
+            order.confirmCancelOrder(ctx);
         } else {
             validateTime.validateTime(ctx, messageText);
         }
