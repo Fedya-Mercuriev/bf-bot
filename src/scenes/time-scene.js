@@ -13,19 +13,6 @@ const timeValidation = new Scene('timeValidation');
 timeValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     const { orderTime } = order.orderInfo;
-    const message = await ctx.reply('Давайте проверим время',
-        Markup.keyboard([
-            ['📜 Меню заказа'],
-            ['📞 Связаться с магазином'],
-            ['⛔ Отменить заказ'],
-        ])
-        .oneTime()
-        .resize()
-        .extra());
-    validateTime.messages = {
-        messageType: 'other',
-        messageObj: message,
-    };
     if (orderTime !== undefined) {
         validateTime.confirmTimeOverwrite(ctx, orderTime);
     } else {

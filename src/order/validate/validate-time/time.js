@@ -86,10 +86,23 @@ class Time extends Base {
         };
     }
 
-    requestTime(ctx) {
+    async requestTime(ctx) {
         const { orderDate, shipping } = order.orderInfo;
         let estimatedTime = 2400000;
         let additionalMessage = '';
+        const message = await ctx.reply('Давайте проверим время',
+            Markup.keyboard([
+                ['📜 Меню заказа'],
+                ['📞 Связаться с магазином'],
+                ['⛔ Отменить заказ'],
+            ])
+            .oneTime()
+            .resize()
+            .extra());
+        this.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
         this._hasDateAndShipping(orderDate, shipping)
             .then(async() => {
                 if (shipping !== false) {
@@ -97,20 +110,20 @@ class Time extends Base {
                     additionalMessage = ' и доставить его к вам';
                 }
                 const { start, finish } = this._getWorkingHours(orderDate);
-                const message = await ctx.replyWithHTML(`Введите самостоятельно желаемое время, когда хотите забрать букет.\n⚠️Пожалуйста, пишите время в формате: ЧЧ:ММ.\n⚠Нам потребуется <b>${estimatedTime / 60000} мин.</b>, чтобы сделать букет${additionalMessage}. Имейте это ввиду когда будете указывать время\n🗓 Сегодня мы работаем с ${start}:00 до ${finish}:00`);
+                const returnedMessage = await ctx.replyWithHTML(`Введите самостоятельно желаемое время, когда хотите забрать букет.\n⚠️Пожалуйста, пишите время в формате: ЧЧ:ММ.\n⚠Нам потребуется <b>${estimatedTime / 60000} мин.</b>, чтобы сделать букет${additionalMessage}. Имейте это ввиду когда будете указывать время\n🗓 Сегодня мы работаем с ${start}:00 до ${finish}:00`);
                 this.messages = {
                     messageType: 'intro',
-                    messageObj: message,
+                    messageObj: returnedMessage,
                 };
             })
             .catch(async(error) => {
-                const message = await ctx.reply(`${error.message}`,
+                const returnedMessage = await ctx.reply(`${error.message}`,
                     Markup.inlineKeyboard(
                         [Markup.callbackButton('В меню заказа', 'returnToMenu:timeValidation')],
                     ).extra());
                 this.messages = {
                     messageType: 'other',
-                    messageObj: message,
+                    messageObj: returnedMessage,
                 };
             });
     }
