@@ -65,12 +65,16 @@ class Time extends Base {
         return workingHours;
     }
 
-    async confirmTimeOverwrite(ctx, time) {
+    static convertTimeToReadableForm(time) {
         let minutes = new Date(time).getMinutes().toString();
         if (minutes.length === 1) {
             minutes = `0${minutes}`;
         }
-        let message = await ctx.replyWithHTML(`⚠️ Вы ранее вводили это время: <b>${new Date(time).getHours()}:${minutes}</b>`);
+        return `${new Date(time).getHours()}:${minutes}`;
+    }
+
+    async confirmTimeOverwrite(ctx, time) {
+        let message = await ctx.replyWithHTML(`⚠️ Вы ранее вводили это время: <b>${Time.convertTimeToReadableForm(time)}</b>`);
         this.messages = {
             messageType: 'confirmation',
             messageObj: message,
@@ -180,4 +184,4 @@ class Time extends Base {
 
 const validateTime = new Time();
 
-module.exports = validateTime;
+module.exports = { validateTime, Time };
