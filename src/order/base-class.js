@@ -159,7 +159,7 @@ class Base {
         } catch (e) {
             console.log(e.message);
         }
-        this.cleanScene(ctx);
+        // this.cleanScene(ctx);
         ctx.scene.leave(sceneName);
         ctx.scene.enter('orderScene');
     }
