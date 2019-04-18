@@ -96,11 +96,6 @@ class Base {
     }
 
     cleanScene(ctx) {
-        // if (this._confirmationMessages.length !== 0) {
-        //     ctx.scene.msgToDelete = this.messagesToDelete.concat(this._confirmationMessages);
-        // } else {
-        //     ctx.scene.msgToDelete = this.messagesToDelete;
-        // }
         const messagesBoxes = Object.keys(this.messagesStorage);
         ctx.scene.msgToDelete = [];
         // Склеим все массивы в один большой, по которому будем проходиться и удалять сообщения
@@ -177,8 +172,36 @@ class Base {
         };
     }
 
+    async confirmCancelOrder(ctx) {
+        const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
+            Markup.inlineKeyboard([
+                [Markup.callbackButton('Отменить заказ', 'cancelOrder:null')],
+                [Markup.callbackButton('Продолжить заказ', 'continueOrder:null')],
+            ]).extra());
+        this.messages = {
+            messageType: 'other',
+            messageObj: returnedMessage,
+        };
+    }
+
+    continueOrder(ctx) {
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '🎉 Продолжаем заказ!');
+        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+    }
+
     async cancelOrder(ctx) {
-        this.messagesToDelete = await ctx.reply('Отменяю заказ');
+        ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '😔 Надеюсь, вы передумаете');
+        ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+        const returnedMessage = await ctx.reply('❌ Заказ отменен!');
+        this.messages = {
+            messageType: 'other',
+            messageObj: returnedMessage,
+        };
+        // Сбросим все значения в информации о заказе
+        for (let prop in order.orderInfo) {
+            order.orderInfo = [prop, undefined];
+        }
+        ctx.scene.leave(ctx.scene.current.id);
     }
 }
 
