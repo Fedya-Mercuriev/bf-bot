@@ -1,8 +1,6 @@
 const Telegraf = require('telegraf');
 const { Markup } = Telegraf;
 const Extra = require('telegraf/extra');
-const config = require('../config');
-const bot = new Telegraf(config.telegram_token);
 
 class Contacts {
     constructor() {
