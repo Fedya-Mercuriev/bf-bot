@@ -87,7 +87,20 @@ class ValidateDate extends Base {
     async requestDate(ctx) {
         const now = new Date();
         this._availableCloseDates = this._checkCloseAvailableDates(now);
-        const message = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
+        let message = await ctx.reply('Давайте проверим дату',
+            Markup.keyboard([
+                ['📜 Меню заказа'],
+                ['📞 Связаться с магазином'],
+                ['⛔ Отменить заказ'],
+            ])
+            .oneTime()
+            .resize()
+            .extra());
+        this.messages = {
+            messageType: 'other',
+            messageObj: message,
+        };
+        message = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
             Markup.inlineKeyboard(this._availableCloseDates).extra());
         this.messages = {
             messageType: 'intro',

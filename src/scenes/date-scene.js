@@ -14,20 +14,6 @@ const dateValidation = new Scene('dateValidation');
 dateValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     let { orderDate } = order.orderInfo;
-    const message = await ctx.reply('Давайте проверим дату',
-        Markup.keyboard([
-            ['📜 Меню заказа'],
-            ['📞 Связаться с магазином'],
-            ['⛔ Отменить заказ'],
-        ])
-        .oneTime()
-        .resize()
-        .extra()
-    );
-    validateDate.messages = {
-        messageType: 'other',
-        messageObj: message,
-    };
     if (orderDate !== undefined) {
         orderDate = validateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
