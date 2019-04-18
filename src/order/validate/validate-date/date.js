@@ -14,7 +14,6 @@ const validateDay = require('./chunks/validate-day');
 class ValidateDate extends Base {
     constructor() {
         super();
-        // this.months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         this.tempDate = null;
         this._availableCloseDates = [];
         this._validateMonth = validateMonth;
