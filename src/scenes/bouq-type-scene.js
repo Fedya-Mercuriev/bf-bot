@@ -3,6 +3,7 @@ const Telegraf = require('telegraf');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 // const { leave } = Stage;
+const orderInfo = require('./../order/order-info');
 const order = require('./../order/order');
 const bouquets = require('./../order/validate/validate-bouq-type/type');
 
@@ -94,7 +95,7 @@ const availableBouquets = [
 // Начало блока с обработкой действий пользователя над ботом
 bouqtypeValidation.enter((ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю все необходимые компоненты');
-    const { bouquet: chosenBouquet } = order.orderInfo;
+    const { bouquet: chosenBouquet } = orderInfo.orderInfo;
     // Этот блок выполнится если база букетов не была загружена
     if (!bouquets.availableBouquets) {
         const processedBouquets = bouquets.addCallbackDataToBouquets(availableBouquets);
@@ -122,7 +123,7 @@ bouqtypeValidation.on('callback_query', (ctx) => {
 bouqtypeValidation.on('message', async(ctx) => {
     if (ctx.updateSubTypes[0] === 'text') {
         if (ctx.update.message.text.match(/меню заказа/gi)) {
-            bouquets.returnToMenu(ctx, order.displayInterface.bind(order), 'bouqtypeValidation');
+            bouquets.returnToMenu(ctx, 'bouqtypeValidation');
         } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
             bouquets.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/gi)) {

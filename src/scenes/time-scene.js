@@ -4,6 +4,7 @@ const { Markup, Extra } = Telegraf;
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
+const orderInfo = require('./../order/order-info');
 const order = require('../order/order');
 const { validateTime } = require('./../order/validate/validate-time/time');
 const { leave } = Stage;
@@ -12,7 +13,7 @@ const timeValidation = new Scene('timeValidation');
 
 timeValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
-    const { orderTime } = order.orderInfo;
+    const { orderTime } = orderInfo.orderInfo;
     if (orderTime !== undefined) {
         validateTime.confirmTimeOverwrite(ctx, orderTime);
     } else {

@@ -6,6 +6,7 @@ const { Extra, Markup } = Telegraf;
 const Stage = require('telegraf/stage');
 const session = require('telegraf/session');
 const Scene = require('telegraf/scenes/base');
+const orderInfo = require('./../order/order-info');
 const order = require('../order/order');
 const orderScene = new Scene('orderScene');
 
@@ -23,7 +24,7 @@ function checkIfAllInfoComplete(infoObj) {
 orderScene.enter(async(ctx) => {
     order.displayInterface(ctx)
         .then(async() => {
-            if (checkIfAllInfoComplete(order.orderInfo)) {
+            if (checkIfAllInfoComplete(orderInfo.orderInfo)) {
                 order.displayFinalOrderInfo(ctx);
             }
         });
@@ -55,6 +56,8 @@ orderScene.on('message', async(ctx) => {
             order.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/i)) {
             order.confirmCancelOrder(ctx);
+        } else if (order.orderConfirmationIsDisplayed) {
+            order.displayFinalOrderInfo(ctx, ctx.update.message.text);
         } else {
             const returnedMessage = await ctx.reply('😐 Увы, я не понимаю что вы написали. Может, лучше продолжить заказ букета? 😁');
             order.messages = {

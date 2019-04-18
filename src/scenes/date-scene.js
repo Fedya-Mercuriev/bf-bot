@@ -6,6 +6,7 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
+const orderInfo = require('./../order/order-info');
 const order = require('../order/order');
 const { validateDate, ValidateDate } = require('../order/validate/validate-date/date');
 const dateValidation = new Scene('dateValidation');
@@ -13,7 +14,7 @@ const dateValidation = new Scene('dateValidation');
 // Команды для сцены
 dateValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
-    let { orderDate } = order.orderInfo;
+    let { orderDate } = orderInfo.orderInfo;
     if (orderDate !== undefined) {
         orderDate = ValidateDate.russifyDate(new Date(orderDate));
         validateDate.confirmDateOverride(ctx, orderDate);
@@ -34,7 +35,7 @@ dateValidation.on('message', async(ctx) => {
             messageObj: message,
         };
     } else if (ctx.update.message.text.match(/меню заказа/i)) {
-        validateDate.returnToMenu(ctx, order.displayInterface.bind(order), 'dateValidation');
+        validateDate.returnToMenu(ctx, 'dateValidation');
     } else if (ctx.update.message.text.match(/связаться с магазином/i)) {
         validateDate.displayPhoneNumber(ctx);
     } else if (ctx.update.message.text.match(/отменить заказ/i)) {

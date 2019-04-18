@@ -3,6 +3,7 @@ const Telegraf = require('telegraf');
 const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
+const orderInfo = require('./../order/order-info');
 const order = require('./../order/order');
 const validateContactInfo = require('./../order/validate/validate-contact-info/contact-info');
 
@@ -10,7 +11,7 @@ const contactInfoValidation = new Scene('contactInfoValidation');
 
 contactInfoValidation.enter((ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю все необходимые компоненты');
-    const { contactInfo } = order.orderInfo;
+    const { contactInfo } = orderInfo.orderInfo;
     if (contactInfo !== undefined) {
         validateContactInfo.confirmInfoOverwrite(ctx, contactInfo);
     } else {

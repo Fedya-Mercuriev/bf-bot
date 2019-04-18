@@ -6,6 +6,7 @@ const session = require('telegraf/session');
 const Stage = require('telegraf/stage');
 const Scene = require('telegraf/scenes/base');
 const { leave } = Stage;
+const orderInfo = require('./../order/order-info');
 const order = require('../order/order');
 const citiesList = require('../../core');
 const validateShipping = require('../order/validate/validate-shipping/shipping');
@@ -14,7 +15,7 @@ const shippingValidation = new Scene('shippingValidation');
 
 shippingValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
-    const { shipping } = order.orderInfo;
+    const { shipping } = orderInfo.orderInfo;
 
     if (!order.city && typeof citiesList === 'object') {
         // Если способ доставки выбирается впервые, а также магазин функционирует
