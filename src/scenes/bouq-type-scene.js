@@ -20,72 +20,72 @@ const availableBouquets = [
       callbackData: (String) data для callback-кнопки
       */
     {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 1',
         description: 'Описание для букета 1',
         price: 1200,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 2',
         description: 'Описание для букета 2',
         price: 1300,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 3',
         description: 'Описание для букета 3',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 4',
         description: 'Описание для букета 4',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 5',
         description: 'Описание для букета 5',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 6',
         description: 'Описание для букета 6',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 7',
         description: 'Описание для букета 7',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 8',
         description: 'Описание для букета 8',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 9',
         description: 'Описание для букета 9',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 10',
         description: 'Описание для букета 10',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 11',
         description: 'Описание для букета 11',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 12',
         description: 'Описание для букета 12',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 13',
         description: 'Описание для букета 13',
         price: 1400,
     }, {
-        photo: 'AgADAgADQ6sxG2TbsUk4aPQNVKk-nrV4Xw8ABJq6AaV7kYYoIMwDAAEC',
+        photo: 'http://parnasse.ru/images/photos/medium/article269140.jpg',
         name: 'Букет 14',
         description: 'Описание для букета 14',
         price: 1400,
@@ -127,7 +127,7 @@ bouqtypeValidation.on('message', async(ctx) => {
         } else if (ctx.update.message.text.match(/связаться с магазином/gi)) {
             bouquets.displayPhoneNumber(ctx);
         } else if (ctx.update.message.text.match(/отменить заказ/gi)) {
-            order.confirmCancelOrder(ctx);
+            order.cancelOrder(ctx, false);
         } else {
             const message = await ctx.reply('⛔ Извините, в данном разделе я не воспринимаю текст.\nВыберите нужный вам тип букета, кликнув по одной из кнопок "Выбрать"');
             bouquets.messages = {
