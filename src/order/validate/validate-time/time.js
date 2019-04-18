@@ -9,7 +9,7 @@ const Base = require('./../../base-class');
 const identifyTime = require('./chunks/identify-time');
 const checkTimeRelevance = require('./chunks/check-time-relevance');
 const { checkTime } = require('./chunks/check-time');
-const order = require('./../../order');
+const orderInfo = require('./../../order-info');
 
 class Time extends Base {
     constructor() {
@@ -91,7 +91,7 @@ class Time extends Base {
     }
 
     async requestTime(ctx) {
-        const { orderDate, shipping } = order.orderInfo;
+        const { orderDate, shipping } = orderInfo.orderInfo;
         let estimatedTime = 2400000;
         let additionalMessage = '';
         const message = await ctx.reply('Давайте проверим время',
@@ -133,7 +133,7 @@ class Time extends Base {
     }
 
     validateTime(ctx, timeString = null) {
-        const { orderDate, shipping } = order.orderInfo;
+        const { orderDate, shipping } = orderInfo.orderInfo;
         this.workingHours = this._getWorkingHours(orderDate);
 
         // Если время ранее было проверено и было введено новое – удаляем старое

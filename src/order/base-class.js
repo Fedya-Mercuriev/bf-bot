@@ -3,7 +3,7 @@
 /* eslint-disable no-underscore-dangle */
 const Telegraf = require('telegraf');
 const { Markup, Extra } = Telegraf;
-const order = require('./../order/order');
+const orderInfo = require('./../order/order-info');
 const Contacts = require('../main-page/contacts');
 
 class Base {
@@ -76,7 +76,7 @@ class Base {
             sceneName,
         } = this[optionsArrName];
         ctx.telegram.answerCbQuery(ctx.update.callback_query.id, `⏳ ${notificationMsg}`);
-        order.orderInfo = [keyToAssignData, this[keyToAccessData]];
+        orderInfo.orderInfo = [keyToAssignData, this[keyToAccessData]];
         this.returnToMenu(ctx, sceneName);
     }
 
