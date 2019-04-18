@@ -15,19 +15,6 @@ const shippingValidation = new Scene('shippingValidation');
 shippingValidation.enter(async(ctx) => {
     ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '⏳ Загружаю необходимые компоненты...');
     const { shipping } = order.orderInfo;
-    let message = await ctx.reply('Как будем забирать букет?',
-        Markup.keyboard([
-            ['📜 Меню заказа'],
-            ['📞 Связаться с магазином'],
-            ['⛔ Отменить заказ'],
-        ])
-        .oneTime()
-        .resize()
-        .extra());
-    validateShipping.messages = {
-        messageType: 'intro',
-        messageObj: message,
-    };
 
     if (!order.city && typeof citiesList === 'object') {
         // Если способ доставки выбирается впервые, а также магазин функционирует
@@ -51,6 +38,10 @@ shippingValidation.enter(async(ctx) => {
             validateShipping.requestShipping(ctx);
         }
     }
+});
+
+shippingValidation.leave((ctx) => {
+    validateShipping.cleanScene(ctx);
 });
 
 shippingValidation.on('callback_query', (ctx) => {

@@ -20,6 +20,10 @@ timeValidation.enter(async(ctx) => {
     }
 });
 
+timeValidation.leave((ctx) => {
+    validateTime.cleanScene(ctx);
+});
+
 timeValidation.on('callback_query', (ctx) => {
     try {
         validateTime.invokeFunction(ctx.update.callback_query.data, ctx);

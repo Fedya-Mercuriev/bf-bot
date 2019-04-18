@@ -22,6 +22,10 @@ dateValidation.enter(async(ctx) => {
     }
 });
 
+dateValidation.leave((ctx) => {
+    validateDate.cleanScene(ctx);
+});
+
 dateValidation.on('message', async(ctx) => {
     if (ctx.updateSubTypes[0] !== 'text') {
         const message = await ctx.reply('⛔️ Пожалуйста, отправьте дату в виде текста');

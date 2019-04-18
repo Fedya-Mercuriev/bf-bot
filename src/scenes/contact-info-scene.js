@@ -18,6 +18,10 @@ contactInfoValidation.enter((ctx) => {
     }
 });
 
+contactInfoValidation.leave((ctx) => {
+    validateContactInfo.cleanScene(ctx);
+});
+
 contactInfoValidation.on('message', async(ctx) => {
     if (ctx.updateSubTypes[0] === 'text') {
         if (ctx.update.message.text.match(/меню заказа/i)) {

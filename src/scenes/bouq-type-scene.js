@@ -107,6 +107,10 @@ bouqtypeValidation.enter((ctx) => {
     }
 });
 
+bouqtypeValidation.leave((ctx) => {
+    bouquets.cleanScene(ctx);
+});
+
 bouqtypeValidation.on('callback_query', (ctx) => {
     try {
         bouquets.invokeFunction(ctx.update.callback_query.data, ctx);
