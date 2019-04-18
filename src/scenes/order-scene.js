@@ -24,16 +24,7 @@ orderScene.enter(async(ctx) => {
     order.displayInterface(ctx)
         .then(async() => {
             if (checkIfAllInfoComplete(order.orderInfo)) {
-                // Сперва покажем информацию для подтверждения, а затем выведем это сообщение
-                const message = await ctx.reply('Как будете рассчитываться?\nПри оплате в Телеграме можно внести лишь предоплату',
-                    Markup.inlineKeyboard([
-                        [Markup.callbackButton('При получении', 'postOrder')],
-                        [Markup.callbackButton('В Телеграме', 'showInvoice')],
-                    ]));
-                order.messages = {
-                    messageType: 'other',
-                    messageObj: message,
-                };
+                order.displayFinalOrderInfo(ctx);
             }
         });
 });
