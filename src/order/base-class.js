@@ -198,8 +198,8 @@ class Base {
             messageObj: returnedMessage,
         };
         // Сбросим все значения в информации о заказе
-        for (let prop in order.orderInfo) {
-            order.orderInfo = [prop, undefined];
+        for (let prop in orderInfo.orderInfo) {
+            orderInfo.orderInfo = [prop, undefined];
         }
         ctx.scene.leave(ctx.scene.current.id);
     }
