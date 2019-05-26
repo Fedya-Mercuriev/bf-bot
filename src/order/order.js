@@ -136,7 +136,7 @@ class Order extends Base {
             parse_mode: 'HTML',
             reply_markup: Markup.inlineKeyboard([
                 [Markup.callbackButton('✅ Да, все правильно!', 'askPayment:null')],
-                [Markup.callbackButton('✏️ Мне нужно кое-что поправить!', 'reviewInfo:null')],
+                [Markup.callbackButton('✏️ Нужно кое-что поправить!', 'reviewInfo:null')],
             ]),
         });
         this.messages = {
@@ -185,11 +185,7 @@ class Order extends Base {
             [Markup.payButton('Оплатить заказ')],
             [Markup.callbackButton('Выбрать другой способ оплаты', 'askPayment:reviewPaymentMethod')],
         ]).extra();
-        const returnedMessage = await replyWithInvoice(invoice, replyOptions);
-        this.messages = {
-            messageType: 'invoice',
-            messageObj: returnedMessage,
-        };
+        await replyWithInvoice(invoice, replyOptions);
     }
 
     answerPrecheckout({ answerPreCheckoutQuery }) {
@@ -205,31 +201,34 @@ class Order extends Base {
             cardCaption = `ℹ️ <b>Название:</b> ${name};\n💰 <b>Стоимость:</b> ${price};\n🗓 <b>Сделать и доставить заказ к:</b> ${orderDate}-${orderTime};\n📲 <b>Номер телефона клиента:</b> ${contactInfo}`;
         }
         cardCaption = `ℹ️ <b>Название:</b> ${name};\n<b>Стоимость:</b> ${price};\n🗓 <b>Сделать заказ к:</b> ${ValidateDate.russifyDate(orderDate)}-${Time.convertTimeToReadableForm(orderTime)};\n📲 <b>Номер телефона клиента:</b> ${contactInfo}`;
-        // Уведомим пользователя о том, что заказ был отправлен
-        try {
-            const returnedMessage = await ctx.reply('✅ Ваш заказ был отправлен!');
-            this.messages = {
-                messageType: 'other',
-                messageObj: returnedMessage,
-            };
-        } catch (e) {
-            const returnedMessage = await ctx.reply('⛔️ Упс! Что-то пошло не так! Попробуйте еще раз.');
-            this.messages = {
-                messageType: 'other',
-                messageObj: returnedMessage,
-            };
-        }
         // Информация о заказе отправялется в админ группу
-        await ctx.telegram.sendMessage(process.env.TEST_ADMIN_GROUP_ID, '🎉 Новый заказ! 🎉');
-        await ctx.telegram.sendPhoto(process.env.TEST_ADMIN_GROUP_ID, photo,
-            Markup.inlineKeyboard([
-                [Markup.callbackButton('✅ Заказ готов', `orderDone:${ctx.chat.id}`)],
-            ]).extra({
-                caption: cardCaption,
-                parse_mode: 'HTML',
-            }));
-        MainPage.displayMainPage(ctx, 'Вы в главном меню!');
-        ctx.scene.leave(ctx.scene.id);
+        ctx.telegram.sendMessage(process.env.TEST_ADMIN_GROUP_ID, '🎉 Новый заказ! 🎉')
+            .then(() => {
+                ctx.telegram.sendPhoto(process.env.TEST_ADMIN_GROUP_ID, photo,
+                    Markup.inlineKeyboard([
+                        [Markup.callbackButton('✅ Заказ готов', `orderDone:${ctx.chat.id}`)],
+                    ]).extra({
+                        caption: cardCaption,
+                        parse_mode: 'HTML',
+                    }));
+            })
+            .then(async() => {
+                const returnedMessage = await ctx.reply('✅ Ваш заказ был отправлен!');
+                this.messages = {
+                    messageType: 'other',
+                    messageObj: returnedMessage,
+                };
+                this.clearOrderInfo();
+                MainPage.displayMainPage(ctx, 'Вы в главном меню!');
+                ctx.scene.leave(ctx.scene.id);
+            })
+            .catch(async() => {
+                const returnedMessage = await ctx.reply('⛔️ Упс! Что-то пошло не так! Попробуйте еще раз.');
+                this.messages = {
+                    messageType: 'other',
+                    messageObj: returnedMessage,
+                };
+            });
     }
 
     async continueOrder(ctx) {
@@ -238,7 +237,7 @@ class Order extends Base {
     }
 
     async cancelOrder(ctx, cancelConfirmed = false) {
-        cancelConfirmed = (cancelConfirmed === 'true') ? true : false;
+        cancelConfirmed = (cancelConfirmed === 'true');
         if (!cancelConfirmed) {
             // Этот блок выполнится если была вызвана функция отмена заказа
             const returnedMessage = await ctx.replyWithHTML('⚠️ Внимание! ⚠️\nВы выбрали отмену заказа. Все введенные вами <b>данные будут стерты</b> и вы будете направлены на главную странцу! Продолжить?',
@@ -254,18 +253,23 @@ class Order extends Base {
             // Этот блок выполнится если отмена заказа была подстверждена
             ctx.telegram.answerCbQuery(ctx.update.callback_query.id, '😔 Надеюсь на ваше скорое возвращение');
             ctx.deleteMessage(ctx.update.callback_query.message.message_id);
+            this.clearOrderInfo();
             const returnedMessage = await ctx.reply('❌ Заказ отменен!');
             this.messages = {
                 messageType: 'other',
                 messageObj: returnedMessage,
             };
-            // Сбросим все значения в информации о заказе
-            for (const prop in orderInfo.orderInfo) {
-                if (orderInfo.orderInfo[prop] !== undefined) {
-                    orderInfo.orderInfo = [prop, undefined];
-                }
-            }
+            MainPage.displayMainPage(ctx, 'Вы в главном меню!');
             ctx.scene.leave(ctx.scene.current.id);
+        }
+    }
+
+    clearOrderInfo() {
+        // Сбросим все значения в информации о заказе
+        for (const prop in orderInfo.orderInfo) {
+            if (orderInfo.orderInfo[prop] !== undefined) {
+                orderInfo.orderInfo = [prop, undefined];
+            }
         }
     }
 }
