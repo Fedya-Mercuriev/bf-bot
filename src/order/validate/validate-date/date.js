@@ -99,7 +99,7 @@ class ValidateDate extends Base {
             messageType: 'other',
             messageObj: message,
         };
-        message = await ctx.reply('Напишите дату самостоятельно.Примеры ввода дат:\n✅ 14 февраля;\n✅ 14.02;\nЕсли вы ввели не ту дату – просто напишите новую',
+        message = await ctx.reply('Напишите дату в формате "день месяц" или выберите одну из предложенных ниже.\nЕсли вы ввели не ту дату – просто напишите новую',
             Markup.inlineKeyboard(this._availableCloseDates).extra());
         this.messages = {
             messageType: 'intro',
